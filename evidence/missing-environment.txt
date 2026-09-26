@@ -1,0 +1,6 @@
+Command: make run
+Exit code: 2
+Duration seconds: 0.05538
+
+{"event": "startup.failed", "status": "BLOCKED", "error_type": "EnvironmentValidationError", "error": "AI_API_KEY is required in the process environment. No credential is read from configuration, CLI arguments, or .env files."}
+make: *** [Makefile:13: run] Error 2

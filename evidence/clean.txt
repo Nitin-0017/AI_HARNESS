@@ -1,0 +1,5 @@
+Command: make clean
+Exit code: 0
+Duration seconds: 0.579492
+
+Cleaned .venv, build artifacts, and caches; logs and target workspaces were preserved.

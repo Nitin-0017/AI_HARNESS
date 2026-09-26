@@ -1,0 +1,7 @@
+Command: make setup
+Exit code: 0
+Duration seconds: 0.565251
+
+Harness import OK: 0.1.0
+Setup complete: standard-library runtime and tests; no packages downloaded.
+Run make test. Set AI_API_KEY in the environment, then run make run.

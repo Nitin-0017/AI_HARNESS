@@ -1,0 +1,2 @@
+# No third-party runtime or test dependencies in Phase 1.
+# make setup uses Python's standard-library venv; no network is required.

@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "74454653236d4da089b8ae5c07b677b0",
+  "started_at": "2026-09-26T22:04:17.956524+00:00",
+  "phase": "PROJECT_FOUNDATION",
+  "status": "READY",
+  "credential_present": true,
+  "workspace": "/tmp/phase1-required-run-d1n2dx5u/separate-target",
+  "task": {
+    "text": "Initialize Phase 1 using this existing workspace. Do not modify any file.",
+    "source": "file",
+    "size_bytes": 74
+  },
+  "model": {
+    "family": null,
+    "model_id": null,
+    "request_format": null,
+    "response_format": null,
+    "endpoint_configured": false
+  },
+  "model_execution": "NOT_IMPLEMENTED",
+  "current_action": null,
+  "verification_status": "NOT_RUN",
+  "task_result": null,
+  "missing_inputs": [],
+  "usage": {
+    "model_calls": 0,
+    "tool_calls": 0,
+    "test_executions": 0,
+    "iterations": 0,
+    "failures": 0,
+    "recovery_attempts": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "context_chars": 73,
+    "elapsed_seconds": 0.000615
+  },
+  "budgets": {
+    "max_seconds": 300.0,
+    "max_iterations": 30,
+    "max_model_calls": 30,
+    "max_tool_calls": 100,
+    "max_test_executions": 20,
+    "max_total_tokens": 100000,
+    "max_context_chars": 64000,
+    "max_retries": 2,
+    "command_timeout_seconds": 60.0,
+    "model_timeout_seconds": 60.0,
+    "max_task_bytes": 64000
+  },
+  "note": "Phase 1 initializes inputs and state only. No model calls, target edits, or target checks were performed.",
+  "artifacts": {
+    "run_dir": "/mnt/data/ai-harness-phase1/.runs/74454653236d4da089b8ae5c07b677b0",
+    "state_file": "/mnt/data/ai-harness-phase1/.runs/74454653236d4da089b8ae5c07b677b0/run_state.json",
+    "events_file": "/mnt/data/ai-harness-phase1/.runs/74454653236d4da089b8ae5c07b677b0/events.jsonl"
+  }
+}

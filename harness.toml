@@ -1,0 +1,32 @@
+# Public settings only. Credentials are forbidden here.
+# Paths in this file are relative to THIS file, not the target repository.
+
+[workspace]
+# No default target: set HARNESS_WORKSPACE or pass --workspace /absolute/path.
+# path = "/absolute/path/to/a/separate/target"
+
+[logging]
+output_dir = ".runs"
+level = "INFO"
+
+[model]
+# Reserved configuration for a later phase. Nothing contacts a model in Phase 1.
+# No endpoint, model ID, provider, request format, or response format is assumed.
+# family = "deepseek"   # or "qwen"; NOT the exact model ID
+# model_id = "<organizer-confirmed-id>"
+# endpoint = "<organizer-confirmed-full-endpoint>"
+# request_format = "<organizer-confirmed-format>"
+# response_format = "<organizer-confirmed-format>"
+
+[budgets]
+max_seconds = 300.0
+max_iterations = 30
+max_model_calls = 30
+max_tool_calls = 100
+max_test_executions = 20
+max_total_tokens = 100000
+max_context_chars = 64000
+max_retries = 2
+command_timeout_seconds = 60.0
+model_timeout_seconds = 60.0
+max_task_bytes = 64000

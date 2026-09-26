@@ -3,9 +3,10 @@
 __pycache__/
 *.py[cod]
 *.egg-info/
-.pytest_cache/
+build/
+dist/
 .env
 .env.*
 !.env.example
-build/
-dist/
+harness.local.toml
+.DS_Store

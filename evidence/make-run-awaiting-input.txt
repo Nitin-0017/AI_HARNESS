@@ -1,0 +1,20 @@
+Command: make run
+Exit code: 0
+Duration seconds: 0.049557
+
+AI Coding Harness | Phase 1: Project Foundation
+Status:       AWAITING_INPUT
+Run ID:       24ebd6ff65e746fb9e8e95a65cebc423
+Credential:   supplied via AI_API_KEY (presence/format validated only)
+Workspace:    Not supplied (never defaults to the harness)
+Task:         Not supplied
+Model family: Not configured
+Model ID:     Not configured
+Model calls:  0 | Tool calls: 0 | Target checks: 0 | Retries: 0
+Verification: NOT_RUN
+State file:   /mnt/data/ai-harness-phase1/.runs/24ebd6ff65e746fb9e8e95a65cebc423/run_state.json
+Event log:    /mnt/data/ai-harness-phase1/.runs/24ebd6ff65e746fb9e8e95a65cebc423/events.jsonl
+Missing input: workspace, task
+Supply --workspace and --task/--task-file, or set HARNESS_WORKSPACE and HARNESS_TASK_FILE.
+Non-interactive startup finishes here; it does not stay running or process later messages.
+Phase 1 initializes inputs and state only. No model calls, target edits, or target checks were performed.

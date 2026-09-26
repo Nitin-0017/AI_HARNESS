@@ -1,0 +1,114 @@
+{
+  "scope": "Phase 1: project foundation only",
+  "validated_at": "2026-09-26T22:04:19.863824+00:00",
+  "runtime": {
+    "python": "3.13.5",
+    "os": "Linux",
+    "make": "GNU Make 4.4.1"
+  },
+  "result": "PASS",
+  "automated_tests": 121,
+  "commands": [
+    {
+      "command": [
+        "make",
+        "setup"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.613328,
+      "evidence": "setup.txt"
+    },
+    {
+      "command": [
+        "make",
+        "test"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.681847,
+      "evidence": "automated-tests.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.048961,
+      "evidence": "make-run.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.049557,
+      "evidence": "make-run-awaiting-input.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run"
+      ],
+      "exit_code": 2,
+      "expected_exit": 2,
+      "duration_seconds": 0.05538,
+      "evidence": "missing-environment.txt"
+    },
+    {
+      "command": [
+        "make",
+        "setup"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.588867,
+      "evidence": "setup-idempotent.txt"
+    },
+    {
+      "command": [
+        "make",
+        "clean"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.579492,
+      "evidence": "clean.txt"
+    },
+    {
+      "command": [
+        "make",
+        "setup"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.565251,
+      "evidence": "setup-after-clean.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run"
+      ],
+      "exit_code": 0,
+      "expected_exit": 0,
+      "duration_seconds": 0.05859,
+      "evidence": "make-run-after-clean.txt"
+    }
+  ],
+  "target_contents_and_mtimes_unchanged": true,
+  "real_api_authentication_tested": false,
+  "live_deepseek_qwen_tested": false,
+  "startup_credential_source": "Dynamically generated temporary environment value; no real API credential supplied or authenticated.",
+  "startup_usage": {
+    "model_calls": 0,
+    "tool_calls": 0,
+    "test_executions": 0
+  },
+  "previous_zip_preserved": true,
+  "previous_zip_sha256": "2e6c1f8f6577fe7df2bddea05f9a3dd4d6ae50e1d12a9ddb6ab35cc46a516cee"
+}
