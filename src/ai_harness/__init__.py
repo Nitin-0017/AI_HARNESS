@@ -1,3 +1,3 @@
-"""AI coding harness: project foundation only. No model or tool execution."""
+"""AI coding harness: foundation plus real repository tools. No model loop yet."""
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"

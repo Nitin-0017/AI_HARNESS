@@ -68,8 +68,10 @@ class StrictStreamHandler(logging.StreamHandler):
 
 
 class EventLog:
-    def __init__(self, run_dir: Path, run_id: str, redactor: Redactor, level: str):
-        path = run_dir / "events.jsonl"
+    def __init__(self, run_dir: Path, run_id: str, redactor: Redactor, level: str, *, filename: str = "events.jsonl"):
+        if filename not in {"events.jsonl", "tool-events.jsonl"}:
+            raise ValueError("Unsupported event log filename")
+        path = run_dir / filename
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
         self._stream = os.fdopen(os.open(path, flags, 0o600), "w", encoding="utf-8")
         self._logger = logging.Logger(f"ai_harness.{run_id}", level=level)

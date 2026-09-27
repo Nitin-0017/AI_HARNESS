@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ai-harness-foundation"
-version = "0.1.0"
-description = "Phase 1: startup, configuration, state, and workspace isolation for an AI coding harness"
+version = "0.2.0"
+description = "Phase 2: guarded repository tools, isolated execution, and Git evidence"
 requires-python = ">=3.11"
 dependencies = []
 

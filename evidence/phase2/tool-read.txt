@@ -1,0 +1,75 @@
+$ make run ARGS=--tool read_file --tool-args '{"path":"app.py"}' --json
+
+STDOUT
+{
+  "schema_version": 1,
+  "run_id": "07acd90a13884cbba4ddb72360d02812",
+  "started_at": "2026-09-26T23:00:45.029424+00:00",
+  "phase": "REAL_REPOSITORY_TOOLS",
+  "status": "READY",
+  "credential_present": true,
+  "workspace": "/mnt/data/phase2-validation/original/target",
+  "task": {
+    "text": "Inspect the separate target workspace",
+    "source": "environment",
+    "size_bytes": 37
+  },
+  "model": {
+    "family": null,
+    "model_id": null,
+    "request_format": null,
+    "response_format": null,
+    "endpoint_configured": false
+  },
+  "model_execution": "NOT_IMPLEMENTED",
+  "current_action": null,
+  "verification_status": "NOT_RUN",
+  "task_result": null,
+  "missing_inputs": [],
+  "usage": {
+    "model_calls": 0,
+    "tool_calls": 1,
+    "test_executions": 0,
+    "iterations": 0,
+    "failures": 0,
+    "recovery_attempts": 0,
+    "input_tokens": 0,
+    "output_tokens": 0,
+    "total_tokens": 0,
+    "context_chars": 37,
+    "elapsed_seconds": 0.008139
+  },
+  "budgets": {
+    "max_seconds": 300.0,
+    "max_iterations": 30,
+    "max_model_calls": 30,
+    "max_tool_calls": 100,
+    "max_test_executions": 20,
+    "max_total_tokens": 100000,
+    "max_context_chars": 64000,
+    "max_retries": 2,
+    "command_timeout_seconds": 60.0,
+    "model_timeout_seconds": 60.0,
+    "max_task_bytes": 64000
+  },
+  "note": "Phase 2 provides explicitly requested repository tools. No model or autonomous verification is implemented.",
+  "artifacts": {
+    "run_dir": "/mnt/data/phase2-validation/original/startup-logs/07acd90a13884cbba4ddb72360d02812",
+    "state_file": "/mnt/data/phase2-validation/original/startup-logs/07acd90a13884cbba4ddb72360d02812/run_state.json",
+    "events_file": "/mnt/data/phase2-validation/original/startup-logs/07acd90a13884cbba4ddb72360d02812/events.jsonl",
+    "tool_events_file": "/mnt/data/phase2-validation/original/startup-logs/07acd90a13884cbba4ddb72360d02812/tool-events.jsonl",
+    "tool_result_file": "/mnt/data/phase2-validation/original/startup-logs/07acd90a13884cbba4ddb72360d02812/tool_result.json"
+  },
+  "tool_result": {
+    "path": "app.py",
+    "content": "def value():\n    return 42\n",
+    "start_line": 1,
+    "end_line": 2,
+    "total_lines": 2,
+    "sha256": "2f8974f06364c943a202b6a6971a24e891683fa2dc6233ad2a5c478dce8fd0b3",
+    "size_bytes": 27,
+    "truncated": false
+  }
+}
+
+STDERR

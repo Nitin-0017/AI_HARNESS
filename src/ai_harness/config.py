@@ -15,6 +15,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from .errors import ConfigurationError
+from .tool_types import CheckSpec, ToolLimits
 
 
 @dataclass(frozen=True)
@@ -49,6 +50,8 @@ class AppConfig:
     budgets: BudgetConfig = field(default_factory=BudgetConfig)
     log_level: str = "INFO"
     config_file: Path | None = None
+    tools: ToolLimits = field(default_factory=ToolLimits)
+    checks: tuple[CheckSpec, ...] = ()
 
     def public_dict(self) -> dict[str, Any]:
         model = asdict(self.model)
@@ -59,6 +62,8 @@ class AppConfig:
             "output_dir": str(self.output_dir),
             "model": model,
             "budgets": asdict(self.budgets),
+            "tools": asdict(self.tools),
+            "checks": [asdict(spec) for spec in self.checks],
             "log_level": self.log_level,
             "config_file": str(self.config_file) if self.config_file else None,
         }
@@ -159,12 +164,22 @@ def load_config(
         except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
             # TOML parser diagnostics may reproduce values; don't echo them.
             raise ConfigurationError("Cannot read configuration: expected a valid TOML file of at most 128000 bytes") from exc
-    if set(data) - {"workspace", "logging", "model", "budgets"}:
+    if set(data) - {"workspace", "logging", "model", "budgets", "tools", "checks"}:
         raise ConfigurationError("Unknown configuration section; credentials are not allowed in configuration")
     workspace_table = _table(data, "workspace", {"path"})
     logging_table = _table(data, "logging", {"output_dir", "level"})
     model_data = _table(data, "model", {f.name for f in fields(ModelConfig)})
     budget_data = _table(data, "budgets", {f.name for f in fields(BudgetConfig)})
+    tool_data = _table(data, "tools", {f.name for f in fields(ToolLimits)} - {"command_timeout_seconds"})
+    check_data = data.get("checks", [])
+    if not isinstance(check_data, list) or len(check_data) > 32:
+        raise ConfigurationError("checks must be a TOML array with at most 32 check tables")
+    try:
+        checks = tuple(CheckSpec(**value) for value in check_data if isinstance(value, dict))
+    except (TypeError, ValueError) as exc:
+        raise ConfigurationError("Unknown or missing check configuration field") from exc
+    if len(checks) != len(check_data) or len({s.name for s in checks}) != len(checks):
+        raise ConfigurationError("Check definitions must be tables with unique names")
     anchor = selected.parent if selected else project_root
     workspace = _path(workspace_table["path"], anchor, "workspace.path") if "path" in workspace_table else None
     output_dir = _path(logging_table.get("output_dir", ".runs"), anchor, "logging.output_dir")
@@ -202,6 +217,10 @@ def load_config(
             raise ConfigurationError(f"Invalid {section} override")
         target.update({key: value for key, value in values.items() if value is not None})
     cfg = AppConfig(workspace=workspace, output_dir=output_dir, model=ModelConfig(**model_data),
-                    budgets=BudgetConfig(**budget_data), log_level=level, config_file=selected)
+                    budgets=BudgetConfig(**budget_data), log_level=level, config_file=selected,
+                    tools=ToolLimits(**tool_data, command_timeout_seconds=budget_data.get("command_timeout_seconds", 60.0)),
+                    checks=checks)
     validate_config(cfg)
+    if selected is not None and workspace is not None and selected.is_relative_to(workspace.resolve()):
+        raise ConfigurationError("Trusted harness configuration must be outside the target workspace")
     return cfg

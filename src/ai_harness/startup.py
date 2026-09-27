@@ -1,4 +1,4 @@
-"""Composition root for Phase 1. Deliberately imports no model or tool executor."""
+"""Startup remains side-effect-free for the target. Tools run only when requested."""
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -6,7 +6,7 @@ from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Any, TextIO
 
-from .config import load_config
+from .config import AppConfig, load_config
 from .environment import load_environment
 from .errors import InputError
 from .inputs import load_task, validate_task
@@ -32,6 +32,8 @@ class StartupResult:
     snapshot: dict[str, Any]
     run_dir: Path
     state_file: Path
+    config: AppConfig
+    workspace: Workspace | None
 
 
 def _prompt(stream: TextIO, output: TextIO, label: str, limit: int) -> str | None:
@@ -81,7 +83,7 @@ def initialize(
     output_dir = validate_output_dir(config.output_dir, workspace=workspace, harness_root=project_root)
     run_dir = create_run_dir(output_dir, state.run_id)
     with EventLog(run_dir, state.run_id, redactor, config.log_level) as events:
-        events.emit("startup.begin", phase="PROJECT_FOUNDATION")
+        events.emit("startup.begin", phase="REAL_REPOSITORY_TOOLS")
         events.emit("environment.validated", credential_present=environment.credential_present, credential_source="environment")
         events.emit("configuration.loaded", configuration=config.public_dict())
         events.emit("input.loaded", workspace=state.workspace, task_present=task is not None,
@@ -98,4 +100,4 @@ def initialize(
         except Exception:
             events.emit("startup.failed", level="ERROR", error="Failed to finalize foundation state")
             raise
-    return StartupResult(state, snapshot, run_dir, state_file)
+    return StartupResult(state, snapshot, run_dir, state_file, config, workspace)

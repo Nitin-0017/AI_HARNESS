@@ -1,0 +1,9 @@
+$ make setup
+
+STDOUT
+Harness import OK: 0.2.0
+Setup complete: standard-library runtime and tests; no packages downloaded.
+Phase 2 execution requires Linux, util-linux unshare, /usr/bin/python3 and Git.
+Run make test. Set AI_API_KEY in the environment, then run make run.
+
+STDERR

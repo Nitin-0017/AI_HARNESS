@@ -1,0 +1,18 @@
+$ make run
+
+STDOUT
+AI Coding Harness | Phase 2: Real Repository Tools
+Status:       READY
+Run ID:       aea9b4f2e84d4a1eb4dbd13d706a08f5
+Credential:   supplied via AI_API_KEY (presence/format validated only)
+Workspace:    /mnt/data/phase2-validation/original/target
+Task:         Inspect the separate target workspace
+Model family: Not configured
+Model ID:     Not configured
+Model calls:  0 | Tool calls: 0 | Target checks: 0 | Retries: 0
+Verification: NOT_RUN
+State file:   /mnt/data/phase2-validation/original/startup-logs/aea9b4f2e84d4a1eb4dbd13d706a08f5/run_state.json
+Event log:    /mnt/data/phase2-validation/original/startup-logs/aea9b4f2e84d4a1eb4dbd13d706a08f5/events.jsonl
+Startup initialized inputs only. No model calls, target edits, or target checks were performed.
+
+STDERR

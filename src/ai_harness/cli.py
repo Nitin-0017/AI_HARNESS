@@ -29,7 +29,7 @@ class Parser(argparse.ArgumentParser):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = Parser(description="AI Harness Phase 1: validate inputs and initialize state. No model execution.")
+    parser = Parser(description="AI Harness Phase 2: initialize state and execute requested repository tools. No model execution.")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--config", type=Path, help="Trusted TOML file (default: harness.toml in the harness project)")
     parser.add_argument("--workspace", "--repo", dest="workspace", type=Path, help="Existing, separate target directory")
@@ -50,6 +50,9 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--non-interactive", action="store_true", help="Never prompt for missing inputs")
     parser.add_argument("--require-input", action="store_true", help="Return an error when workspace/task is missing")
     parser.add_argument("--json", action="store_true", help="Print the redacted state as JSON")
+    parser.add_argument("--tool", choices=("list_files", "search_code", "read_file", "apply_patch", "run_checks", "get_changes"),
+                        help="Execute exactly one real tool; no autonomous model loop")
+    parser.add_argument("--tool-args", default="{}", help="JSON object containing tool arguments")
     return parser
 
 
@@ -65,7 +68,7 @@ def _display(snapshot: dict[str, Any], output: TextIO) -> None:
     usage = snapshot["usage"]
     preview = task["text"].replace("\n", " ")[:180] if task else "Not supplied"
     lines = [
-        "AI Coding Harness | Phase 1: Project Foundation",
+        "AI Coding Harness | Phase 2: Real Repository Tools",
         f"Status:       {snapshot['status']}",
         f"Run ID:       {snapshot['run_id']}",
         "Credential:   supplied via AI_API_KEY (presence/format validated only)",
@@ -102,6 +105,14 @@ def main(
     redactor = Redactor(env.get("AI_API_KEY"))
     try:
         args = build_parser().parse_args(argv)
+        if len(args.tool_args.encode("utf-8")) > 128000:
+            raise ConfigurationError("Tool argument JSON exceeds 128000 bytes")
+        try:
+            tool_arguments = json.loads(args.tool_args)
+        except (ValueError, RecursionError) as exc:
+            raise ConfigurationError("--tool-args must be valid JSON") from exc
+        if not isinstance(tool_arguments, dict) or (args.tool is None and tool_arguments):
+            raise ConfigurationError("--tool-args requires a tool and a JSON object")
         overrides = {
             "workspace": args.workspace, "output_dir": args.output_dir, "log_level": args.log_level,
             "model": {"family": args.model_family, "model_id": args.model_id, "endpoint": args.endpoint,
@@ -115,11 +126,15 @@ def main(
             env=env, stdin=stdin, prompt_output=stderr,
             project_root=PROJECT_ROOT if project_root is None else project_root, cwd=Path.cwd(),
         )
-        if args.json:
+        exit_code = 0
+        if args.tool:
+            from .tool_session import execute_tool
+            exit_code = execute_tool(result, args.tool, tool_arguments, redactor)
+        if args.json or args.tool:
             print(json.dumps(result.snapshot, ensure_ascii=False, indent=2, allow_nan=False), file=stdout)
         else:
             _display(result.snapshot, stdout)
-        return 0
+        return exit_code
     except KeyboardInterrupt:
         payload = {"event": "startup.interrupted", "status": "INCOMPLETE", "error": "Interrupted during startup"}
         print(json.dumps(payload), file=stderr)

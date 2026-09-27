@@ -1,0 +1,17 @@
+# Trusted operator configuration. Store outside the target. No credentials.
+[logging]
+output_dir = ".runs"
+
+[budgets]
+command_timeout_seconds = 30.0
+max_seconds = 300.0
+
+[tools]
+max_file_bytes = 1000000
+max_output_bytes = 262144
+max_files = 10000
+
+[[checks]]
+name = "unit"
+argv = ["{python}", "-m", "unittest", "discover", "-s", "tests", "-v"]
+timeout_seconds = 20.0

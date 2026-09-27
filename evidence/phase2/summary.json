@@ -1,0 +1,102 @@
+{
+  "phase": 2,
+  "python": "3.13.5",
+  "platform": "Linux-6.18.44-x86_64-with-glibc2.41",
+  "commands": [
+    {
+      "command": [
+        "make",
+        "setup"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.561611,
+      "transcript": "setup.txt"
+    },
+    {
+      "command": [
+        "make",
+        "test"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 5.136726,
+      "transcript": "test.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.053858,
+      "transcript": "run.txt"
+    },
+    {
+      "command": [
+        "make",
+        "run",
+        "ARGS=--tool read_file --tool-args '{\"path\":\"app.py\"}' --json"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.063535,
+      "transcript": "tool-read.txt"
+    },
+    {
+      "command": [
+        "make",
+        "clean"
+      ],
+      "exit_code": 0,
+      "duration_seconds": 0.5655,
+      "transcript": "clean.txt"
+    }
+  ],
+  "target_unchanged": true,
+  "model_calls": 0,
+  "credential_source": "random temporary environment value; no API authentication",
+  "suite": {
+    "tests": 254,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "namespace_execution_tested": true,
+  "git_inspection_tested": true,
+  "remote_model_tested": false,
+  "clean_removed_environment": true,
+  "baseline_commit": "40575eea3f9fcc8e981d484aa9d912af19b5b4d7",
+  "baseline_tree": "5f3259bd1293e0ec8b590816891068ef531baf17",
+  "unprivileged_suite": {
+    "uid": 1000,
+    "tests": 254,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "transcript": "unprivileged-test.txt"
+  },
+  "demo_outcomes": [
+    false,
+    false,
+    true
+  ],
+  "source_sha256": {
+    "src/ai_harness/__init__.py": "096a0a04b26c3c04215f67022b205ac5304034b429e7719eec567b1a1beb5309",
+    "src/ai_harness/__main__.py": "935a1c1166b0c1ea35a82256345000bf2c73ded718d77773bc27a71ecce28f7d",
+    "src/ai_harness/_sandbox.py": "1a3d098c93d24d551d7fae09f5b01003c112fdd251e7e3a2fbb26ea6c2913692",
+    "src/ai_harness/cli.py": "0ec78b7f46a595573eeed209cb83498c47557808d0cd148610760cedfba367d5",
+    "src/ai_harness/config.py": "9e83f03bdcebd33d62e3d96cae6b565043924248b5ba625e5da2328938e67cca",
+    "src/ai_harness/environment.py": "cb480fad6a7198a79ac76572d61eb4d99c7913644074465caae927556243816c",
+    "src/ai_harness/errors.py": "158d8639759a99e3c1e25ac332a582ba25988682f816fde6484913d5b874e769",
+    "src/ai_harness/execution.py": "8fa32983fe0a237504b1e10f9b87d6359c6c2659edc68691e7e91fc27cf41d8f",
+    "src/ai_harness/git_tools.py": "63239d6921c6afe85e10ae73739dd275186eed5873df1b3d256944c730a02b75",
+    "src/ai_harness/inputs.py": "8f45b8dea1b4ec005c9d76c8a4ffdb1396fc6ef23c06cf242b4846bb23edd429",
+    "src/ai_harness/patching.py": "2012b9af972b552573d411641a66e06935307277d67fd8c9a57afefbc1c291b3",
+    "src/ai_harness/repository_io.py": "52c63a8765bd3ef784ed2a771f07dee4e8225e8d2d92de3045621c177f015148",
+    "src/ai_harness/startup.py": "64759bca046d3429e0c0aec76d41f41cd2e7585d281a61185f020edf44ed346c",
+    "src/ai_harness/state.py": "51a36da2b6b29567ab0bec579d201677d164f088d46c94b7c5b39cca20e48feb",
+    "src/ai_harness/telemetry.py": "bd20d4c24f301d4a0aff081b1245b77f14806dcc242ccb8699de3e710e8afc68",
+    "src/ai_harness/tool_session.py": "c5ef7c2a4b6348bcabb643e07ed0e1558bdb30e865f4f4dc70206dbd200407f7",
+    "src/ai_harness/tool_types.py": "d34572be75d56adc3fe690cef63fbc2e057aee06a6fcd445702745c533496452",
+    "src/ai_harness/tools.py": "55af2e55214ef8e3994a6ddfbd340b7f181f85e31b92eff4d5324bd5228b397f",
+    "src/ai_harness/workspace.py": "78d0a7af12b249e3ceac1d57390dd7dafeaf49ea49d5ea9a9c02af1ad2e9e2c4"
+  }
+}

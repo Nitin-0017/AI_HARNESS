@@ -1,0 +1,6 @@
+$ make clean
+
+STDOUT
+Cleaned .venv, build artifacts, and caches; logs and target workspaces were preserved.
+
+STDERR

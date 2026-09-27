@@ -46,6 +46,8 @@ class RunState:
     usage: ResourceUsage = field(default_factory=ResourceUsage)
     missing_inputs: list[str] = field(default_factory=list)
     credential_present: bool = True
+    current_action: str | None = None
+    verification_status: str = "NOT_RUN"
     _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
     _started_clock: float = field(init=False, repr=False)
 
@@ -58,7 +60,7 @@ class RunState:
 
     def check_time_budget(self) -> None:
         if self.elapsed_seconds >= self.budgets.max_seconds:
-            raise BudgetExceeded("Startup reached the configured max_seconds limit")
+            raise BudgetExceeded("Run reached the configured max_seconds limit")
 
     def finish_startup(self) -> None:
         self.check_time_budget()
@@ -75,7 +77,7 @@ class RunState:
             "schema_version": 1,
             "run_id": self.run_id,
             "started_at": self.started_at,
-            "phase": "PROJECT_FOUNDATION",
+            "phase": "REAL_REPOSITORY_TOOLS",
             "status": self.status.value,
             "credential_present": self.credential_present,
             "workspace": self.workspace,
@@ -83,11 +85,13 @@ class RunState:
                       "size_bytes": self.task.size_bytes} if self.task else None),
             "model": self.model,
             "model_execution": "NOT_IMPLEMENTED",
-            "current_action": None,
-            "verification_status": "NOT_RUN",
+            "current_action": self.current_action,
+            "verification_status": self.verification_status,
             "task_result": None,
             "missing_inputs": list(self.missing_inputs),
             "usage": {**asdict(self.usage), "elapsed_seconds": round(self.elapsed_seconds, 6)},
             "budgets": asdict(self.budgets),
-            "note": "Phase 1 initializes inputs and state only. No model calls, target edits, or target checks were performed.",
+            "note": ("Phase 2 provides explicitly requested repository tools. No model or autonomous verification is implemented."
+                     if self.usage.tool_calls else
+                     "Startup initialized inputs only. No model calls, target edits, or target checks were performed."),
         }

@@ -1,18 +1,13 @@
 # Recorded execution evidence
 
-These are actual command outputs captured while validating the Phase 1 source.
-`validation.json` records return codes, durations, runtime versions, and checks.
+Files directly under this directory are preserved **historical Phase 1** records.
+The current Phase 2 implementation and execution results are in `phase2/`.
 
-- `setup.txt`, `setup-idempotent.txt`, `setup-after-clean.txt`: offline setup runs.
-- `automated-tests.txt`: real unittest output (121 tests, all passed).
-- `make-run.txt`: plain `make run` with task/workspace supplied in the environment.
-- `make-run-awaiting-input.txt`: valid credential environment, missing task/workspace.
-- `missing-environment.txt`: an intentional negative check with `AI_API_KEY` absent.
-- `clean.txt`, `make-run-after-clean.txt`: cleanup and subsequent startup.
-- `startup-state.json`, `startup-events.jsonl`: one real initialized foundation run.
+Phase 2 includes complete harness-suite output, startup and read-tool transcripts,
+cleanup results, a real tool demonstration, and an unprivileged Linux test run.
+The demo is explicitly scripted and does not evaluate a language model. No
+DeepSeek/Qwen endpoint was contacted or authenticated.
 
-A randomly generated temporary environment value was used only to test credential
-presence/format. No real API key was supplied or authenticated. No model was called.
-The task workspace was a temporary independent directory and was not changed.
-Absolute paths/run IDs in these transcripts belong to that validation session;
-they are evidence, not configuration to reuse on another computer.
+`phase2/summary.json` records the environment, actual command statuses, counts,
+and source hashes. Runtime absolute paths inside transcripts are the real paths
+used during validation; they are not paths that the evaluator must reproduce.

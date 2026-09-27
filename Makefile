@@ -6,14 +6,18 @@ VENV_PYTHON := .venv/bin/python
 setup:
 	@$(PYTHON) -I scripts/setup.py
 
-.venv/.phase1-ready: scripts/setup.py pyproject.toml
+.venv/.harness-ready: scripts/setup.py pyproject.toml
 	@$(PYTHON) -I scripts/setup.py
 
-run: .venv/.phase1-ready
+run: .venv/.harness-ready
 	@PYTHONDONTWRITEBYTECODE=1 "$(VENV_PYTHON)" -I -m ai_harness $(ARGS)
 
-test: .venv/.phase1-ready
+test: .venv/.harness-ready
 	@PYTHONDONTWRITEBYTECODE=1 "$(VENV_PYTHON)" -I -m unittest discover -s tests -v
 
 clean:
 	@$(PYTHON) -I scripts/clean.py
+
+.PHONY: demo-tools
+demo-tools: .venv/.harness-ready
+	@PYTHONDONTWRITEBYTECODE=1 "$(VENV_PYTHON)" -I scripts/phase2_demo.py $(ARGS)

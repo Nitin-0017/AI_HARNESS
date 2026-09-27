@@ -29,11 +29,12 @@ def main() -> int:
         subprocess.run([str(python), "-I", "-c",
                         "import ai_harness; print('Harness import OK:', ai_harness.__version__)"],
                        check=True, timeout=30)
-        (target / ".phase1-ready").write_text("0.1.0\n", encoding="utf-8")
+        (target / ".harness-ready").write_text("0.2.0\n", encoding="utf-8")
     except (OSError, subprocess.SubprocessError):
         print("Setup failed; check the Python venv installation and filesystem permissions.", file=sys.stderr)
         return 1
     print("Setup complete: standard-library runtime and tests; no packages downloaded.")
+    print("Phase 2 execution requires Linux, util-linux unshare, /usr/bin/python3 and Git.")
     print("Run make test. Set AI_API_KEY in the environment, then run make run.")
     return 0
 

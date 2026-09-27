@@ -10,7 +10,7 @@ output_dir = ".runs"
 level = "INFO"
 
 [model]
-# Reserved configuration for a later phase. Nothing contacts a model in Phase 1.
+# Reserved configuration for a later phase. Nothing contacts a model in Phase 2.
 # No endpoint, model ID, provider, request format, or response format is assumed.
 # family = "deepseek"   # or "qwen"; NOT the exact model ID
 # model_id = "<organizer-confirmed-id>"
@@ -30,3 +30,20 @@ max_retries = 2
 command_timeout_seconds = 60.0
 model_timeout_seconds = 60.0
 max_task_bytes = 64000
+
+# Tool limits are separate from model budgets. No implicit shell access.
+[tools]
+max_file_bytes = 1000000
+max_output_bytes = 262144
+max_files = 10000
+max_search_matches = 200
+max_scan_bytes = 20000000
+max_patch_files = 20
+max_depth = 40
+
+# A trusted operator must select checks appropriate for the target repository.
+# This example is not enabled automatically:
+# [[checks]]
+# name = "unit"
+# argv = ["{python}", "-m", "unittest", "discover", "-s", "tests", "-v"]
+# timeout_seconds = 30.0
