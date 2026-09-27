@@ -69,7 +69,7 @@ class StrictStreamHandler(logging.StreamHandler):
 
 class EventLog:
     def __init__(self, run_dir: Path, run_id: str, redactor: Redactor, level: str, *, filename: str = "events.jsonl"):
-        if filename not in {"events.jsonl", "tool-events.jsonl"}:
+        if filename not in {"events.jsonl", "tool-events.jsonl", "model-events.jsonl"}:
             raise ValueError("Unsupported event log filename")
         path = run_dir / filename
         flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)

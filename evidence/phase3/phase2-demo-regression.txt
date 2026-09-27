@@ -1,0 +1,13 @@
+list_files
+search_code
+read_file
+run_checks (all_passed=False)
+apply_patch
+run_checks (all_passed=False)
+apply_patch
+run_checks (all_passed=True)
+get_changes
+Target retained for inspection: /tmp/harness-phase2-demo-r2zpi4p3/target
+Evidence: /mnt/data/phase3-validation/phase2-demo-regression/demo_report.json
+Actual outcomes: baseline failed; incorrect patch failed; repaired code passed all 3 fixture tests.
+No model was used. This does not establish official evaluation performance.

@@ -1,14 +1,23 @@
-# AI Coding Harness — Phase 2
+# AI Coding Harness — Phase 3
 
-**Real repository tools on the existing Phase 1 foundation.** Version 0.2.0 adds
-`list_files`, `search_code`, `read_file`, `apply_patch`, `run_checks`, and
-`get_changes`. There is no model adapter, fake model execution, autonomous agent
-loop, or task-verification verdict yet.
+**Model adapters integrated into the existing Phase 1 + Phase 2 project.** Version
+0.3.0 adds a generic model interface, explicit real DeepSeek/Qwen HTTP adapters,
+and a development-only `MockModelAdapter`. The six repository tools and their
+isolation implementation are unchanged. No earlier full-harness implementation
+was imported, and no parallel application was created.
 
-The starting source tree is byte-for-byte identical to the published Phase 1
-Git tree `5f3259bd1293e0ec8b590816891068ef531baf17` (main commit
-`40575eea3f9fcc8e981d484aa9d912af19b5b4d7`). This is an incremental update, not
-an import of the earlier, broader full-harness archive.
+The working baseline is the exact Phase 2 archive. This release changes only
+integration/configuration/state surfaces and adds the model modules. The full
+patch and file-level continuity record identify every change.
+
+**No official organizer endpoint, model ID or wire format has been supplied.**
+Nothing is guessed. Real adapters require explicit configuration and `AI_API_KEY`.
+Live DeepSeek/Qwen compatibility and evaluation performance are **not tested**.
+The recorded HTTP tests use a local protocol fixture, not a provider service.
+
+The default startup and all six direct `--tool` commands remain available.
+`--model-step` explicitly performs one model request and at most one guarded tool
+action. It is not a complete autonomous repair loop or final verifier.
 
 ## Start
 
@@ -16,6 +25,7 @@ an import of the earlier, broader full-harness archive.
 make setup
 make test
 make demo-tools
+make demo-model
 ```
 
 Python 3.11+ and a POSIX environment are required for the file tools. **The complete
@@ -41,7 +51,7 @@ session it reports missing input honestly; `--require-input` makes that an error
 ## Run one real tool from the CLI
 
 The harness entry point requires `AI_API_KEY` from the environment, as in Phase 1.
-No API request or authentication is made in this phase. Never put a credential in
+No model API request is made by a direct `--tool` operation or ordinary startup. Never put a credential in
 source code, an argument, or a committed configuration file.
 
 With `AI_API_KEY` already supplied in the environment:
@@ -159,11 +169,59 @@ It retains the target and writes `demo_report.json`; printed paths identify both
 **The decisions are scripted in this development demonstration. The edits, Git
 commands, and test processes are real. No mock model exists in the production path.**
 
+## Model adapter use
+
+The offline model demonstration uses no API key:
+
+```bash
+make demo-model
+```
+
+It copies the **existing** average-function fixture into a separate temporary
+repository. A baseline command actually fails, then the mock requests
+`read_file → apply_patch → run_checks`. The existing tools do the work. Its report
+contains actual command results and Git changes, with `is_mock=true` and zero
+external model API calls. This tests integration, not model ability.
+
+For a real call, have the organizer's credential already in `AI_API_KEY`, then set
+`AI_PROVIDER`, `AI_MODEL_ID`, `AI_API_ENDPOINT`, `AI_REQUEST_FORMAT` and
+`AI_RESPONSE_FORMAT` to confirmed values. The endpoint is the complete POST URL;
+the adapter appends **nothing**. Only select `chat_completions`/`chat_json` or
+`chat_tools` when the endpoint supports that chosen format. An alternative
+`json_template`/`mapped_json` profile is configurable in trusted TOML.
+
+```bash
+# Configuration-only readiness. Does NOT claim the provider is reachable.
+make run ARGS='--non-interactive --model-health'
+
+# Explicit network probe; may incur provider usage, never executes tools.
+make run ARGS='--non-interactive --model-health --live-health'
+
+# One real model decision plus its validated tool action, not a complete loop.
+make run ARGS='--workspace /absolute/path/to/target --task "Inspect the issue" --model-step'
+```
+
+A model-step run writes `model-events.jsonl`, `model_result.json`, and the updated
+`run_state.json` in the existing run directory. Malformed responses become
+structured `MODEL_ERROR` outcomes, not uncaught tracebacks or fabricated success.
+Failed real checks return `CHECKS_FAILED`. None of these statuses is `VERIFIED`.
+A normal text response is `MESSAGE`, not proof that the task is solved.
+
+`model.provider`/`AI_PROVIDER` is the new provider setting; existing
+`model.family`/`AI_MODEL_FAMILY` remains a supported alias. Model settings can be
+provided through the existing defaults → TOML → environment → CLI precedence.
+`AI_TEMPERATURE`, `AI_MAX_TOKENS`, `AI_TIMEOUT_SECONDS` and `AI_MAX_RETRIES` are
+supported. Existing global budgets still cap per-call limits.
+
+See `docs/PHASE3_MODEL_ADAPTER.md` for the interface, exact formats, examples,
+health semantics, retry rules and limitations. `harness.model.example.toml` is an
+explicit opt-in example, **not organizer-supplied configuration**.
+
 ## Reports and source map
 
 A CLI tool run writes startup `events.jsonl`, `tool-events.jsonl`,
 `run_state.json`, and `tool_result.json` under a private `.runs/<run-id>/`.
-Budgets and actual tool/check counts are recorded; model usage remains zero.
+Budgets and actual tool/check counts are recorded. Direct tool runs keep model usage at zero.
 Output redaction protects the environment-supplied credential where recognized,
 but is not a general secret scanner.
 
@@ -177,7 +235,16 @@ src/ai_harness/
   _sandbox.py          Private namespace setup and reduced filesystem
   git_tools.py         Actual Git status/diff inspection
   tool_session.py      CLI tools connected to Phase 1 startup/state/logging
-  cli.py, config.py    Existing interface extended with tools/check settings
+  model.py             Generic ModelAdapter protocol (controller dependency)
+  model_types.py       Normalized requests/responses, usage, controlled errors
+  model_providers.py   DeepSeek/Qwen adapters and production-only factory
+  model_protocols.py   Explicit chat or configured JSON template codecs
+  model_transport.py   Bounded actual HTTP requests, verified TLS, no redirects
+  mock_model.py        Explicit scripted test adapter, never factory-selected
+  model_tools.py       Schemas for the existing six tool signatures
+  controller.py        One model-independent request/action integration step
+  model_session.py     CLI composition, artifacts and health checks
+  cli.py, config.py    Existing interface extended with model settings
   startup.py, ...     Preserved foundation components
 ```
 

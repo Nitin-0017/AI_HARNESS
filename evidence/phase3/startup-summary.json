@@ -1,0 +1,9 @@
+{
+  "command": "make run",
+  "exit_code": 0,
+  "target_unchanged": true,
+  "status": "READY",
+  "model_execution": "NOT_RUN",
+  "model_calls": 0,
+  "credential": "random temporary environment value; no authentication attempted"
+}

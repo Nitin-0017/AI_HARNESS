@@ -1,0 +1,14 @@
+AI Coding Harness | Phase 3: Model Adapter
+Status:       READY
+Run ID:       5edaa9e77e3a4ab796b649b1081469fa
+Credential:   supplied via AI_API_KEY (presence/format validated only)
+Workspace:    /tmp/phase3-startup-target-5unziary
+Task:         Inspect the existing addition function
+Provider:     Not configured
+Model ID:     Not configured
+Model calls:  0 | Tool calls: 0 | Target checks: 0 | Retries: 0
+Verification: NOT_RUN
+State file:   /mnt/data/phase3-validation/startup-runs/5edaa9e77e3a4ab796b649b1081469fa/run_state.json
+Event log:    /mnt/data/phase3-validation/startup-runs/5edaa9e77e3a4ab796b649b1081469fa/events.jsonl
+Startup initialized inputs only. No model calls, target edits, or target checks were performed.
+

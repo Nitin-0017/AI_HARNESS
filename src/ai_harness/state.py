@@ -32,6 +32,8 @@ class ResourceUsage:
     output_tokens: int = 0
     total_tokens: int = 0
     context_chars: int = 0
+    estimated_tokens: int = 0
+    unknown_model_usage_calls: int = 0
 
 
 @dataclass
@@ -48,6 +50,7 @@ class RunState:
     credential_present: bool = True
     current_action: str | None = None
     verification_status: str = "NOT_RUN"
+    model_execution: str = "NOT_RUN"
     _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
     _started_clock: float = field(init=False, repr=False)
 
@@ -77,21 +80,21 @@ class RunState:
             "schema_version": 1,
             "run_id": self.run_id,
             "started_at": self.started_at,
-            "phase": "REAL_REPOSITORY_TOOLS",
+            "phase": "MODEL_ADAPTER",
             "status": self.status.value,
             "credential_present": self.credential_present,
             "workspace": self.workspace,
             "task": ({"text": self.task.text, "source": self.task.source,
                       "size_bytes": self.task.size_bytes} if self.task else None),
             "model": self.model,
-            "model_execution": "NOT_IMPLEMENTED",
+            "model_execution": self.model_execution,
             "current_action": self.current_action,
             "verification_status": self.verification_status,
             "task_result": None,
             "missing_inputs": list(self.missing_inputs),
             "usage": {**asdict(self.usage), "elapsed_seconds": round(self.elapsed_seconds, 6)},
             "budgets": asdict(self.budgets),
-            "note": ("Phase 2 provides explicitly requested repository tools. No model or autonomous verification is implemented."
-                     if self.usage.tool_calls else
+            "note": ("Explicit tools/model steps are available. No autonomous task-verification verdict is implemented."
+                     if self.usage.tool_calls or self.usage.model_calls else
                      "Startup initialized inputs only. No model calls, target edits, or target checks were performed."),
         }

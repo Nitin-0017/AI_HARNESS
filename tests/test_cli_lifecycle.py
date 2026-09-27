@@ -25,7 +25,7 @@ class CliProcessTests(FoundationTestCase):
     def test_version(self):
         result = self.run_cli("--version")
         self.assertEqual(result.returncode, 0)
-        self.assertEqual(result.stdout.strip(), "0.2.0")
+        self.assertEqual(result.stdout.strip(), "0.3.0")
 
     def test_real_process_accepts_target_and_task(self):
         result = self.run_cli("--workspace", str(self.target), "--task", "Fix addition", "--json", "--require-input",

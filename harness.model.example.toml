@@ -1,0 +1,22 @@
+# OPT-IN EXAMPLE, NOT THE ORGANIZER'S CONFIGURATION.
+# Only use these codecs after the organizer confirms a compatible endpoint.
+# Supply AI_PROVIDER (deepseek/qwen), AI_MODEL_ID, AI_API_ENDPOINT and AI_API_KEY
+# through the environment. There are deliberately no defaults for those values.
+
+[model]
+request_format = "chat_completions"
+response_format = "chat_json"  # Alternatively chat_tools for native function calls.
+max_tokens = 2048
+timeout_seconds = 60.0
+max_retries = 2
+retry_backoff_seconds = 0.25
+# temperature = 0.2  # Keep omitted for models which do not accept this parameter.
+
+# Provider-specific flags must be explicitly selected, not guessed:
+# [model.extra_body]
+# enable_thinking = false
+
+# Add the checks appropriate for the actual target. The model cannot define them.
+# [[checks]]
+# name = "unit"
+# argv = ["{python}", "-m", "unittest", "discover", "-s", "tests", "-v"]

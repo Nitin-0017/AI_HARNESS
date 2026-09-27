@@ -34,7 +34,7 @@ class StateTests(FoundationTestCase):
         state.finish_startup()
         self.assertEqual(state.status, StartupStatus.READY)
         self.assertEqual(state.to_dict()["verification_status"], "NOT_RUN")
-        self.assertEqual(state.to_dict()["model_execution"], "NOT_IMPLEMENTED")
+        self.assertEqual(state.to_dict()["model_execution"], "NOT_RUN")
 
     def test_ids_are_unique_and_timestamp_has_timezone(self):
         first, second = RunState(BudgetConfig()), RunState(BudgetConfig())

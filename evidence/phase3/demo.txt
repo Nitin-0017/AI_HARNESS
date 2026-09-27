@@ -1,0 +1,7 @@
+Actual baseline all_passed: False
+Mock requested: read_file -> ACTION_COMPLETED
+Mock requested: apply_patch -> ACTION_COMPLETED
+Mock requested: run_checks -> ACTION_COMPLETED
+Report: /mnt/data/phase3-validation/demo/demo_report.json
+Retained target: /tmp/harness-phase3-demo-ouitx7tr/target
+Decisions are scripted; patches, checks and diffs are actual execution. No live-model compatibility is claimed.

@@ -41,7 +41,7 @@ class StartupTests(FoundationTestCase):
         result = self.initialize(options=self.ready_options())
         self.assertIsNone(result.snapshot["model"]["family"])
         self.assertEqual(result.snapshot["usage"]["model_calls"], 0)
-        self.assertEqual(result.snapshot["model_execution"], "NOT_IMPLEMENTED")
+        self.assertEqual(result.snapshot["model_execution"], "NOT_RUN")
 
     def test_supplied_endpoint_is_not_contacted(self):
         env = {**self.env, "AI_MODEL_FAMILY": "deepseek", "AI_MODEL_ID": "organizer-id",

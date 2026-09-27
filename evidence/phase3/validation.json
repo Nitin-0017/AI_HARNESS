@@ -1,0 +1,61 @@
+{
+  "phase": 3,
+  "version": "0.3.0",
+  "baseline": "exact ai-harness-phase2.zip, extended in its existing workspace",
+  "tests": {
+    "total": 359,
+    "passed": 359,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "prior_tests_retained": 254,
+    "new_model_tests": 105,
+    "duration_seconds": 6.258
+  },
+  "commands": {
+    "make setup": 0,
+    "make test": 0,
+    "make run": 0,
+    "make demo-model": 0,
+    "make demo-tools": 0
+  },
+  "runtime": {
+    "python": "3.13.5",
+    "system": "Linux",
+    "machine": "x86_64"
+  },
+  "demo": {
+    "scripted_decisions": true,
+    "external_model_api_calls": 0,
+    "baseline_all_passed": false,
+    "actions": [
+      "read_file",
+      "apply_patch",
+      "run_checks"
+    ],
+    "final_checks_all_passed": true,
+    "actual_check_exit_code": 0
+  },
+  "phase2_files_byte_identical": {
+    "src/ai_harness/tools.py": true,
+    "src/ai_harness/tool_types.py": true,
+    "src/ai_harness/repository_io.py": true,
+    "src/ai_harness/patching.py": true,
+    "src/ai_harness/execution.py": true,
+    "src/ai_harness/_sandbox.py": true,
+    "src/ai_harness/git_tools.py": true,
+    "src/ai_harness/tool_session.py": true,
+    "src/ai_harness/workspace.py": true,
+    "src/ai_harness/environment.py": true,
+    "src/ai_harness/inputs.py": true
+  },
+  "model_protocol_tests": "actual HTTP against loopback fixture for both provider adapters; not live model evaluation",
+  "live_deepseek_tested": false,
+  "live_qwen_tested": false,
+  "github_modified": false,
+  "existing_test_adjustments": {
+    "tests/test_cli_lifecycle.py": "version assertion 0.2.0 -> 0.3.0",
+    "tests/test_startup.py": "model_execution NOT_IMPLEMENTED -> NOT_RUN",
+    "tests/test_state_telemetry.py": "model_execution NOT_IMPLEMENTED -> NOT_RUN"
+  }
+}

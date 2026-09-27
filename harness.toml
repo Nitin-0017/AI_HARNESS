@@ -10,13 +10,21 @@ output_dir = ".runs"
 level = "INFO"
 
 [model]
-# Reserved configuration for a later phase. Nothing contacts a model in Phase 2.
+# Phase 3: ordinary startup and direct tools do not contact a model.
+# Only --model-step or --model-health --live-health can request network activity.
 # No endpoint, model ID, provider, request format, or response format is assumed.
-# family = "deepseek"   # or "qwen"; NOT the exact model ID
+# provider = "deepseek" # or "qwen"; NOT the exact model ID
+# family remains a backwards-compatible alias for provider.
 # model_id = "<organizer-confirmed-id>"
 # endpoint = "<organizer-confirmed-full-endpoint>"
 # request_format = "<organizer-confirmed-format>"
-# response_format = "<organizer-confirmed-format>"
+# response_format = "<explicitly-selected-supported-codec>"
+# temperature = 0.2    # Omitted unless explicitly supplied.
+# max_tokens = 2048
+# timeout_seconds = 60.0
+# max_retries = 2
+# retry_backoff_seconds = 0.25
+# max_response_bytes = 1048576
 
 [budgets]
 max_seconds = 300.0

@@ -29,7 +29,7 @@ def main() -> int:
         subprocess.run([str(python), "-I", "-c",
                         "import ai_harness; print('Harness import OK:', ai_harness.__version__)"],
                        check=True, timeout=30)
-        (target / ".harness-ready").write_text("0.2.0\n", encoding="utf-8")
+        (target / ".harness-ready").write_text("0.3.0\n", encoding="utf-8")
     except (OSError, subprocess.SubprocessError):
         print("Setup failed; check the Python venv installation and filesystem permissions.", file=sys.stderr)
         return 1

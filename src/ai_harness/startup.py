@@ -83,7 +83,7 @@ def initialize(
     output_dir = validate_output_dir(config.output_dir, workspace=workspace, harness_root=project_root)
     run_dir = create_run_dir(output_dir, state.run_id)
     with EventLog(run_dir, state.run_id, redactor, config.log_level) as events:
-        events.emit("startup.begin", phase="REAL_REPOSITORY_TOOLS")
+        events.emit("startup.begin", phase="MODEL_ADAPTER")
         events.emit("environment.validated", credential_present=environment.credential_present, credential_source="environment")
         events.emit("configuration.loaded", configuration=config.public_dict())
         events.emit("input.loaded", workspace=state.workspace, task_present=task is not None,

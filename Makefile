@@ -21,3 +21,7 @@ clean:
 .PHONY: demo-tools
 demo-tools: .venv/.harness-ready
 	@PYTHONDONTWRITEBYTECODE=1 "$(VENV_PYTHON)" -I scripts/phase2_demo.py $(ARGS)
+
+.PHONY: demo-model
+demo-model: .venv/.harness-ready
+	@PYTHONDONTWRITEBYTECODE=1 "$(VENV_PYTHON)" -I scripts/phase3_demo.py $(ARGS)
