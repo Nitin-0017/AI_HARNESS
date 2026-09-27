@@ -29,7 +29,7 @@ class Parser(argparse.ArgumentParser):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = Parser(description="AI Harness Phase 3: model adapters and repository tools. No model execution unless --model-step or --live-health is requested.")
+    parser = Parser(description="AI Harness: use --agent for the bounded autonomous coding loop; default startup and explicit tools remain available.")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--config", type=Path, help="Trusted TOML file (default: harness.toml in the harness project)")
     parser.add_argument("--workspace", "--repo", dest="workspace", type=Path, help="Existing, separate target directory")
@@ -50,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-timeout", type=float, help="Per-attempt model timeout, capped by the existing budget")
     parser.add_argument("--api-retries", type=int)
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--agent", action="store_true", help="Run the bounded inspect/edit/check/repair loop with the configured real model")
     mode.add_argument("--model-step", action="store_true", help="Request and execute at most one validated model tool action")
     mode.add_argument("--model-health", action="store_true", help="Validate real adapter configuration; no network by default")
     parser.add_argument("--live-health", action="store_true", help="With --model-health, send one real generation probe (may incur cost)")
@@ -143,10 +144,10 @@ def main(
         if args.tool:
             from .tool_session import execute_tool
             exit_code = execute_tool(result, args.tool, tool_arguments, redactor)
-        if args.model_step or args.model_health:
+        if args.agent or args.model_step or args.model_health:
             from .model_session import execute_model
-            exit_code = execute_model(result, env=env, redactor=redactor, health=args.model_health, live=args.live_health)
-        if args.json or args.tool or args.model_step or args.model_health:
+            exit_code = execute_model(result, env=env, redactor=redactor, health=args.model_health, live=args.live_health, agent=args.agent)
+        if args.json or args.tool or args.agent or args.model_step or args.model_health:
             print(json.dumps(result.snapshot, ensure_ascii=False, indent=2, allow_nan=False), file=stdout)
         else:
             _display(result.snapshot, stdout)

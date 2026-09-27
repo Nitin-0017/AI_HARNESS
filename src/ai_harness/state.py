@@ -20,6 +20,20 @@ class StartupStatus(str, Enum):
     READY = "READY"
 
 
+class AgentStatus(str, Enum):
+    START = "START"
+    INSPECTING = "INSPECTING"
+    PLANNING = "PLANNING"
+    ACTING = "ACTING"
+    VERIFYING = "VERIFYING"
+    RECOVERING = "RECOVERING"
+    COMPLETED = "COMPLETED"
+    FAILED = "FAILED"
+    BLOCKED = "BLOCKED"
+    BUDGET_EXHAUSTED = "BUDGET_EXHAUSTED"
+    INCOMPLETE = "INCOMPLETE"
+
+
 @dataclass
 class ResourceUsage:
     model_calls: int = 0
@@ -51,6 +65,8 @@ class RunState:
     current_action: str | None = None
     verification_status: str = "NOT_RUN"
     model_execution: str = "NOT_RUN"
+    agent_status: AgentStatus | None = None
+    task_result: str | None = None
     _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
     _started_clock: float = field(init=False, repr=False)
 
@@ -80,7 +96,8 @@ class RunState:
             "schema_version": 1,
             "run_id": self.run_id,
             "started_at": self.started_at,
-            "phase": "MODEL_ADAPTER",
+            "phase": "AGENT_CONTROLLER" if self.agent_status else "MODEL_ADAPTER",
+            "agent_status": self.agent_status.value if self.agent_status else None,
             "status": self.status.value,
             "credential_present": self.credential_present,
             "workspace": self.workspace,
@@ -90,11 +107,11 @@ class RunState:
             "model_execution": self.model_execution,
             "current_action": self.current_action,
             "verification_status": self.verification_status,
-            "task_result": None,
+            "task_result": self.task_result,
             "missing_inputs": list(self.missing_inputs),
             "usage": {**asdict(self.usage), "elapsed_seconds": round(self.elapsed_seconds, 6)},
             "budgets": asdict(self.budgets),
-            "note": ("Explicit tools/model steps are available. No autonomous task-verification verdict is implemented."
+            "note": (("Agent result is based on actual configured checks, not model claims; verification is limited to the recorded workspace snapshot." if self.agent_status else "Explicit tools/model steps are available. No autonomous task-verification verdict is implemented.")
                      if self.usage.tool_calls or self.usage.model_calls else
                      "Startup initialized inputs only. No model calls, target edits, or target checks were performed."),
         }
