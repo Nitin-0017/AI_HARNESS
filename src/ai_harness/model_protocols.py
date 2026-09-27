@@ -12,11 +12,11 @@ from .model_types import (ModelError, ModelRequest, ModelResponse, TokenUsage, i
 REQUEST_FORMATS = {'chat_completions', 'json_template'}
 RESPONSE_FORMATS = {'chat_json', 'chat_tools', 'mapped_json'}
 MAPPING_FIELDS = {'message', 'requested_action', 'arguments', 'finish_reason',
-                  'input_tokens', 'output_tokens', 'total_tokens', 'response_id', 'returned_model'}
+                  'input_tokens', 'output_tokens', 'total_tokens', 'response_id', 'returned_model', 'reason', 'expected_outcome'}
 PLACEHOLDERS = {'model_id', 'messages', 'tools', 'temperature', 'max_tokens'}
 JSON_INSTRUCTION = (
     'Return exactly one JSON object with message (string), requested_action '
-    '(one available tool name or null), and arguments (object). '
+    '(one available tool name or null), arguments (object), reason (string), and expected_outcome (string). '
     'Do not use markdown fences or claim a tool ran. Request at most one action. '
     'For a message without an action, use requested_action:null and arguments:{}.'
 )
@@ -160,7 +160,7 @@ def decode_response(config: ModelConfig, document: Any, request: ModelRequest) -
             reason = 'tool_call'
         usage = TokenUsage(fields.get('input_tokens'), fields.get('output_tokens'), fields.get('total_tokens'))
         metadata = {key: fields[key] for key in ('response_id', 'returned_model') if key in fields}
-        return validate_response(ModelResponse(message, action, arguments, reason, usage, metadata), request)
+        return validate_response(ModelResponse(message, action, arguments, reason, usage, metadata, fields.get('reason', ''), fields.get('expected_outcome', '')), request)
     choices = document.get('choices')
     if not isinstance(choices, list) or len(choices) != 1 or not isinstance(choices[0], dict):
         raise invalid('Exactly one complete model choice is required')
@@ -201,9 +201,11 @@ def decode_response(config: ModelConfig, document: Any, request: ModelRequest) -
     if message.get('tool_calls'):
         raise invalid('Native tool calls were returned for the selected JSON-content protocol')
     data = strict_json(content, limit=config.max_response_bytes)
-    if not isinstance(data, dict) or set(data) - {'message', 'requested_action', 'arguments'}:
-        raise invalid('JSON content must contain only message, requested_action and arguments')
-    action, arguments = data.get('requested_action'), data.get('arguments', {})
+    if not isinstance(data, dict) or set(data) - {'message', 'requested_action', 'action', 'arguments', 'reason', 'expected_outcome'}:
+        raise invalid('JSON content contains unsupported action fields')
+    if 'action' in data and 'requested_action' in data and data['action'] != data['requested_action']:
+        raise invalid('Conflicting action names')
+    action, arguments = data.get('requested_action', data.get('action')), data.get('arguments', {})
     if action:
         reason = 'tool_call'
-    return validate_response(ModelResponse(data.get('message', ''), action, arguments, reason, usage, metadata), request)
+    return validate_response(ModelResponse(data.get('message', data.get('reason', '')), action, arguments, reason, usage, metadata, data.get('reason', ''), data.get('expected_outcome', '')), request)

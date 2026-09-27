@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 import json
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any
 from urllib.parse import quote, quote_plus
@@ -13,12 +14,18 @@ from uuid import uuid4
 
 
 class Redactor:
-    def __init__(self, secret: str | None = None):
-        secret = secret if isinstance(secret, str) else None
-        self._secrets = sorted(
-            {v for v in (secret, quote(secret, safe="", errors="replace") if secret else None,
-                          quote_plus(secret, errors="replace") if secret else None) if v}, key=len, reverse=True,
-        )
+    def __init__(self, secret: str | None = None, *, additional_secrets=()):
+        values = [s for s in (secret, *additional_secrets) if isinstance(s, str) and s]
+        self._secrets = sorted({v for s in values for v in (s, quote(s, safe="", errors="replace"),
+                               quote_plus(s, errors="replace"))}, key=len, reverse=True)
+
+    @classmethod
+    def from_environment(cls, env):
+        # Retain only known credential values privately; never copy the environment into state.
+        pattern = re.compile(r'(?:^|_)(?:API_KEY|ACCESS_KEY|SECRET(?:_KEY)?|TOKEN|PASSWORD|PASSWD|PRIVATE_KEY|CREDENTIALS?)(?:$|_)', re.I)
+        values = [value for key, value in env.items() if pattern.search(str(key))
+                  and isinstance(value, str) and 0 < len(value) <= 8192]
+        return cls(env.get('AI_API_KEY'), additional_secrets=values)
 
     def __repr__(self) -> str:
         return "Redactor(<protected>)"
@@ -26,6 +33,8 @@ class Redactor:
     def text(self, value: str) -> str:
         for secret in self._secrets:
             value = value.replace(secret, "[REDACTED]")
+        value = re.sub(r"(?is)-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----.*?-----END (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", "[REDACTED PRIVATE KEY]", value)
+        value = re.sub(r"(?i)([\"']?(?:api[_-]?key|access[_-]?token|password|passwd|secret)[\"']?\s*[:=]\s*)([\"'])([^\"'\n]+)\2", lambda m: m[1] + m[2] + '[REDACTED]' + m[2], value)
         return value
 
     def clean(self, value: Any) -> Any:
@@ -34,7 +43,7 @@ class Redactor:
         if isinstance(value, Path):
             return self.text(str(value))
         if isinstance(value, Mapping):
-            sensitive = {"ai_api_key", "api_key", "authorization", "password", "secret", "access_token"}
+            sensitive = {"ai_api_key", "api_key", "authorization", "password", "secret", "access_token", "private_key", "credentials", "refresh_token", "client_secret"}
             return {self.text(str(k)): "[REDACTED]" if str(k).lower() in sensitive else self.clean(v)
                     for k, v in value.items()}
         if isinstance(value, (list, tuple)):

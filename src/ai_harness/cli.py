@@ -29,7 +29,7 @@ class Parser(argparse.ArgumentParser):
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = Parser(description="AI Harness: use --agent for the bounded autonomous coding loop; default startup and explicit tools remain available.")
+    parser = Parser(description="AI Harness: use --agent for the bounded autonomous coding loop; configured default runs the agent; --startup and explicit tools remain available.")
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("--config", type=Path, help="Trusted TOML file (default: harness.toml in the harness project)")
     parser.add_argument("--workspace", "--repo", dest="workspace", type=Path, help="Existing, separate target directory")
@@ -50,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--api-timeout", type=float, help="Per-attempt model timeout, capped by the existing budget")
     parser.add_argument("--api-retries", type=int)
     mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--startup", action="store_true", help="No model execution; validate and initialize only")
     mode.add_argument("--agent", action="store_true", help="Run the bounded inspect/edit/check/repair loop with the configured real model")
     mode.add_argument("--model-step", action="store_true", help="Request and execute at most one validated model tool action")
     mode.add_argument("--model-health", action="store_true", help="Validate real adapter configuration; no network by default")
@@ -57,6 +58,8 @@ def build_parser() -> argparse.ArgumentParser:
     for item in fields(BudgetConfig):
         parser.add_argument("--" + item.name.replace("_", "-"),
                             type=float if item.name in FLOAT_BUDGETS else int)
+    parser.add_argument("--max-runtime-seconds", dest="max_seconds", type=float)
+    parser.add_argument("--max-test-runs", dest="max_test_executions", type=int)
     parser.add_argument("--non-interactive", action="store_true", help="Never prompt for missing inputs")
     parser.add_argument("--require-input", action="store_true", help="Return an error when workspace/task is missing")
     parser.add_argument("--json", action="store_true", help="Print the redacted state as JSON")
@@ -78,7 +81,7 @@ def _display(snapshot: dict[str, Any], output: TextIO) -> None:
     usage = snapshot["usage"]
     preview = task["text"].replace("\n", " ")[:180] if task else "Not supplied"
     lines = [
-        "AI Coding Harness | Phase 3: Model Adapter",
+        "AI Coding Harness | Startup",
         f"Status:       {snapshot['status']}",
         f"Run ID:       {snapshot['run_id']}",
         "Credential:   supplied via AI_API_KEY (presence/format validated only)",
@@ -98,6 +101,8 @@ def _display(snapshot: dict[str, Any], output: TextIO) -> None:
             "Supply --workspace and --task/--task-file, or set HARNESS_WORKSPACE and HARNESS_TASK_FILE.",
             "Non-interactive startup finishes here; it does not stay running or process later messages.",
         ])
+    if not (model.get("endpoint_configured") and all(model.get(k) for k in ("model_id", "request_format", "response_format"))):
+        lines.append("Model connection is not fully configured; no coding task was executed. Supply the approved model settings.")
     lines.append(snapshot["note"])
     for line in lines:
         print(_terminal_text(line), file=output)
@@ -112,7 +117,7 @@ def main(
     stdin = sys.stdin if stdin is None else stdin
     stdout = sys.stdout if stdout is None else stdout
     stderr = sys.stderr if stderr is None else stderr
-    redactor = Redactor(env.get("AI_API_KEY"))
+    redactor = Redactor.from_environment(env)
     try:
         args = build_parser().parse_args(argv)
         if args.live_health and not args.model_health:
@@ -140,15 +145,23 @@ def main(
             env=env, stdin=stdin, prompt_output=stderr,
             project_root=PROJECT_ROOT if project_root is None else project_root, cwd=Path.cwd(),
         )
+        selected_model = result.config.model
+        configured = all((selected_model.provider or selected_model.family, selected_model.model_id,
+                          selected_model.endpoint, selected_model.request_format, selected_model.response_format))
+        auto_agent = bool(configured and result.state.task and result.workspace and not
+                          (args.startup or args.agent or args.model_step or args.model_health or args.tool))
         exit_code = 0
         if args.tool:
             from .tool_session import execute_tool
             exit_code = execute_tool(result, args.tool, tool_arguments, redactor)
-        if args.agent or args.model_step or args.model_health:
+        if auto_agent or args.agent or args.model_step or args.model_health:
             from .model_session import execute_model
-            exit_code = execute_model(result, env=env, redactor=redactor, health=args.model_health, live=args.live_health, agent=args.agent)
+            exit_code = execute_model(result, env=env, redactor=redactor, health=args.model_health, live=args.live_health, agent=args.agent or auto_agent)
         if args.json or args.tool or args.agent or args.model_step or args.model_health:
             print(json.dumps(result.snapshot, ensure_ascii=False, indent=2, allow_nan=False), file=stdout)
+        elif auto_agent and "report" in result.snapshot:
+            from .reporting import terminal_report
+            print(terminal_report(result.snapshot["report"]), file=stdout, end="")
         else:
             _display(result.snapshot, stdout)
         return exit_code

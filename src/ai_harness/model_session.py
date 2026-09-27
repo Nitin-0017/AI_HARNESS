@@ -12,12 +12,16 @@ from .model_types import ModelError, ModelMessage
 from .startup import StartupResult
 from .telemetry import EventLog, Redactor, write_state
 from .tools import RepositoryTools
+from .test_selection import discover_checks
+from .reporting import build_report, write_report
 
 
 def execute_model(startup: StartupResult, *, env: Mapping[str, str], redactor: Redactor,
                   health: bool = False, live: bool = False, agent: bool = False) -> int:
     state = startup.state
     outcome = None
+    adapter = None
+    registry = {s.name: s for s in startup.config.checks}
     exit_code = 2
     with EventLog(startup.run_dir, state.run_id, redactor, startup.config.log_level,
                   filename='model-events.jsonl') as log:
@@ -34,6 +38,8 @@ def execute_model(startup: StartupResult, *, env: Mapping[str, str], redactor: R
                     state.usage.model_calls += 1
                     state.usage.estimated_tokens += probe_reservation
                     state.usage.unknown_model_usage_calls += 1
+                    state.usage.unknown_input_usage_calls += 1
+                    state.usage.unknown_output_usage_calls += 1
                     state.model_execution = 'REQUESTED'
                 result = adapter.health_check(live=live, before_attempt=count_probe,
                     timeout_seconds=max(0.001, state.budgets.max_seconds - state.elapsed_seconds))
@@ -42,6 +48,8 @@ def execute_model(startup: StartupResult, *, env: Mapping[str, str], redactor: R
                     state.usage.input_tokens += result.usage.input_tokens or 0
                     state.usage.output_tokens += result.usage.output_tokens or 0
                     state.usage.total_tokens += result.usage.total_tokens or 0
+                    if result.usage.input_tokens is not None: state.usage.unknown_input_usage_calls -= 1
+                    if result.usage.output_tokens is not None: state.usage.unknown_output_usage_calls -= 1
                     if result.usage.known:
                         state.usage.unknown_model_usage_calls -= 1
                         state.usage.estimated_tokens -= probe_reservation
@@ -56,6 +64,10 @@ def execute_model(startup: StartupResult, *, env: Mapping[str, str], redactor: R
                 with RepositoryTools(startup.workspace, limits=startup.config.tools, checks=startup.config.checks,
                                      state=state, redactor=redactor, emit=log.emit) as tools:
                     if agent:
+                        if not tools.checks:
+                            tools.checks = {s.name: s for s in discover_checks(tools.io)}
+                            log.emit("checks.discovered", names=list(tools.checks))
+                        registry = tools.checks
                         controller = AgentController(adapter, tools, state, max_tokens=startup.config.model.max_tokens,
                                                      redactor=redactor, emit=log.emit)
                         result = controller.run()
@@ -93,5 +105,11 @@ def execute_model(startup: StartupResult, *, env: Mapping[str, str], redactor: R
                     stream.write('\n')
                 startup.snapshot['model_result'] = outcome
                 artifacts['model_result_file'] = str(path)
+            if agent and outcome is not None:
+                report = redactor.clean(build_report(state, outcome, adapter.metadata() if adapter else state.model, registry))
+                report_paths = write_report(startup.run_dir, report, redactor)
+                startup.snapshot['report'] = report
+                artifacts['report_file'] = report_paths['report.json']
+                artifacts['summary_file'] = report_paths['summary.md']
             write_state(startup.run_dir, startup.snapshot, redactor)
     return exit_code

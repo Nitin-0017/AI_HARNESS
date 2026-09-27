@@ -1,252 +1,212 @@
-# AI Coding Harness — Phase 3
+# AI Coding Harness
 
-**Model adapters integrated into the existing Phase 1 + Phase 2 project.** Version
-0.3.0 adds a generic model interface, explicit real DeepSeek/Qwen HTTP adapters,
-and a development-only `MockModelAdapter`. The six repository tools and their
-isolation implementation are unchanged. No earlier full-harness implementation
-was imported, and no parallel application was created.
+One Python harness, one selected DeepSeek or Qwen model per run, and real guarded
+repository tools. It extends the original Phases 1–5; the controller, model
+interface, context manager and namespace runner remain the same components.
 
-The working baseline is the exact Phase 2 archive. This release changes only
-integration/configuration/state surfaces and adds the model modules. The full
-patch and file-level continuity record identify every change.
+```
+task + separate repository → inspect/context → model action → guarded tools
+                         → checks → failure feedback/repair → final verification/report
+```
 
-**No official organizer endpoint, model ID or wire format has been supplied.**
-Nothing is guessed. Real adapters require explicit configuration and `AI_API_KEY`.
-Live DeepSeek/Qwen compatibility and evaluation performance are **not tested**.
-The recorded HTTP tests use a local protocol fixture, not a provider service.
+## Install and launch
 
-The default startup and all six direct `--tool` commands remain available.
-`--model-step` explicitly performs one model request and at most one guarded tool
-action. It is not a complete autonomous repair loop or final verifier.
-
-## Start
+Prerequisites: Python 3.11+, GNU Make, Git, Linux with enabled user/mount/PID/network
+namespaces, util-linux `unshare`, and `/usr/bin/python3`. Runtime and tests use the
+Python standard library. The supplied test runner does not download target
+dependencies; required target packages must be provisioned in the sandbox's
+read-only system runtime. Unsupported isolation fails closed, never falling back
+to unrestricted local execution. File-only tools also support suitable POSIX hosts.
 
 ```bash
+git clone https://github.com/Nitin-0017/AI_HARNESS.git
+cd AI_HARNESS
 make setup
 make test
-make demo-tools
-make demo-model
 ```
 
-Python 3.11+ and a POSIX environment are required for the file tools. **The complete
-Phase 2 execution and Git-inspection path requires Linux with user, mount, PID,
-IPC, UTS, and network namespaces enabled, util-linux `unshare`, system
-`/usr/bin/python3`, and `/usr/bin/git`.** No root privileges are deliberately
-requested: `unshare --user --map-root-user` creates a user namespace. Some Linux
-hosts, containers, and distributions disable this facility; execution then
-fails closed. There is no unrestricted local fallback. macOS needs a suitable
-Linux VM for isolated checks; use WSL2/a Linux VM on Windows. Native macOS and
-Windows execution were not tested.
+`make setup` creates `.venv`, registers `src/`, and verifies imports without
+network downloads. It does not install operating-system packages or enable kernel
+namespaces. Those are declared prerequisites, not hidden manual repair steps.
 
-Setup creates the harness `.venv` offline using Python's standard library.
-It does not install system packages or download target dependencies. The target
-runtime is the read-only system runtime **inside the sandbox**, not the harness's
-virtual environment. Provision target dependencies in the evaluation Linux
-runtime; an external target virtualenv is not mounted automatically.
+The evaluator provides `AI_API_KEY` through the environment. Do not write it in
+source, Makefile, TOML, a committed `.env`, or command history. The application
+never loads `.env` files or provider-specific alternative credential variables.
 
-The default `make run` still initializes the application without running target
-code. In a terminal it can ask for missing task/workspace input. In a noninteractive
-session it reports missing input honestly; `--require-input` makes that an error.
+Configure these **organizer-confirmed** settings in the environment or trusted
+TOML outside the target repository:
 
-## Run one real tool from the CLI
+| Setting | Environment variable |
+|---|---|
+| Provider (`deepseek` or `qwen`) | `AI_PROVIDER` |
+| Exact model ID | `AI_MODEL_ID` |
+| Complete POST endpoint | `AI_API_ENDPOINT` |
+| Explicit request profile | `AI_REQUEST_FORMAT` |
+| Explicit response profile | `AI_RESPONSE_FORMAT` |
+| Optional temperature | `AI_TEMPERATURE` |
+| Maximum response tokens | `AI_MAX_TOKENS` |
+| Per-request timeout | `AI_TIMEOUT_SECONDS` |
+| Retry limit | `AI_MAX_RETRIES` |
 
-The harness entry point requires `AI_API_KEY` from the environment, as in Phase 1.
-No model API request is made by a direct `--tool` operation or ordinary startup. Never put a credential in
-source code, an argument, or a committed configuration file.
+No endpoint, model ID, or wire format is invented. Supported profiles are the
+existing non-streaming chat/JSON and configured-template interfaces documented in
+`docs/PHASE3_MODEL_ADAPTER.md`. An endpoint is a full URL; no suffix is appended.
+HTTPS is required except explicit loopback HTTP for local protocol tests/serving.
+The exact organizer API is still unconfirmed. Missing configuration is not a
+successful live-model evaluation.
 
-With `AI_API_KEY` already supplied in the environment:
+With the credential and complete model configuration supplied:
 
 ```bash
-make run ARGS='--workspace /absolute/path/to/target --task "Inspect the issue" --tool list_files'
-
-make run ARGS='--workspace /absolute/path/to/target --task "Inspect the issue" --tool search_code --tool-args '\''{"query":"average","pattern":"*.py"}'\'''
-
-make run ARGS='--workspace /absolute/path/to/target --task "Inspect the issue" --tool get_changes'
+make run
 ```
 
-For complex JSON, direct invocation after setup avoids a second layer of Makefile
-shell quoting:
+An interactive terminal prompts for the existing target workspace and task text,
+then starts the agent. For automation:
 
 ```bash
-.venv/bin/python -I -m ai_harness \
-  --workspace /absolute/path/to/target \
-  --task "Fix the empty-input case" \
-  --tool apply_patch \
-  --tool-args '{"edits":[{"path":"calculator.py","old":"return sum(numbers) / len(numbers)","new":"return 0 if not numbers else sum(numbers) / len(numbers)"}]}'
+export HARNESS_WORKSPACE="/absolute/path/to/separate/target"
+export HARNESS_TASK_FILE="/absolute/path/to/issue.txt"
+make run
 ```
 
-**The target must be a separate, exclusively owned disposable directory.** It must
-not be the harness, inside the harness, or an ancestor containing the harness.
-Paths supplied to file tools are workspace-relative POSIX paths, not host paths.
+The target cannot be the harness, inside it, or an ancestor containing it. Use a
+standalone Git checkout owned exclusively by the run. A URL is not automatically
+cloned or fetched. Multi-line tasks are accepted with `--task-file` or `--task-stdin`.
+The organizer's exact machine/task transport is not specified by the supplied
+brief; these are this implementation's documented input interfaces.
 
-## Configure checks
+A **fully configured default launch now runs the agent**. A missing connection
+keeps startup diagnostic-only and never claims the task was executed. Explicit
+modes preserve earlier interfaces:
 
-Checks are selected by name from trusted operator configuration outside the target.
-A tool request cannot add executable arguments, choose a shell, or install packages.
-No tests are guessed or automatically marked passed.
+```bash
+make run ARGS='--startup --json'               # validation only, zero model calls
+make run ARGS='--agent --non-interactive'      # agent with JSON state/report
+make run ARGS='--model-step'                   # at most one model action
+make run ARGS='--model-health'                 # configuration check, no network
+make run ARGS='--model-health --live-health'   # actual billable probe
+make run ARGS='--tool list_files'              # one real tool, no model
+make run ARGS='--help'
+```
 
-`harness.checks.example.toml` supplies a Python unittest example:
+## Coding and verification
+
+The generic adapter returns a validated action and arguments, optional `reason`
+and `expected_outcome`, finish reason and reported usage. Provider formats stay
+inside the adapter. The model cannot execute a shell or set a success verdict.
+
+The agent inspects a bounded, relevant source/test selection before deciding.
+An existing file must have a current read receipt before edits; stale or unread
+sections require a new read. Patches are exact, unique text replacements, not
+fuzzy edits. Existing tests cannot be deleted or have assertions replaced; new
+regression files and conservative additive test updates are supported. Some
+legitimate restructurings therefore require operator review rather than a bypass.
+
+The six original tools remain `list_files`, `search_code`, `read_file`,
+`apply_patch`, `run_checks`, and `get_changes`. `finish` is only a controller
+request for independent verification. Each action remains within call, iteration,
+time and output limits. Repeated unchanged failures require another strategy or
+terminate honestly.
+
+Checks come from trusted `[[checks]]` configuration (`harness.checks.example.toml`)
+or conservative Python test discovery. Example:
 
 ```toml
 [[checks]]
-name = "unit"
+name = "full"
 argv = ["{python}", "-m", "unittest", "discover", "-s", "tests", "-v"]
-timeout_seconds = 20.0
+required = true
+scope = "broad"
+timeout_seconds = 60
+
+[[checks]]
+name = "calculator"
+argv = ["{python}", "-m", "unittest", "discover", "-s", "tests", "-p", "test_calculator.py", "-v"]
+required = false
+scope = "targeted"
+paths = ["calculator.py", "tests/test_calculator.py"]
 ```
 
-Run that named check:
+Tool callers select **check names**, not new commands. `{python}` is the sandbox
+system interpreter. Automatic discovery examines bounded local Python syntax,
+uses unittest or pytest as appropriate, and does not import target code in the
+host. Independent unittest directories receive required checks so nested
+non-package tests are not silently skipped. Unknown build systems need explicit
+trusted checks. Missing pytest/dependencies are reported, not automatically
+installed. No discovered/configured checks means no `VERIFIED` result.
+
+Targeted checks may guide repairs, but all required broader checks must pass for
+completion. Verification uses real started-command status, exit code, stdout,
+stderr, test-run evidence, final Git diff, and a stable eligible-file snapshot.
+Zero recognized tests, stale results, truncated final diffs, timeouts or missing
+required checks cannot verify a task. Historical failures remain in the report
+after a repair. Passing available checks is not proof of all task requirements,
+hidden-test success, or official evaluation performance.
+
+## Context, resources and security
+
+Context uses explicit TASK, REPOSITORY, RELEVANT CODE, TESTS, RECENT ACTIONS,
+CURRENT CHANGES, FAILURES, VERIFICATION and BUDGET sections. It selects snippets,
+deduplicates observations, removes stale evidence after edits, and retains recent
+failures within item/count/character/byte limits. A bounded local AST index offers
+symbols, imports and heuristic test/source links; it is not a complete dependency
+analysis. Repository text is untrusted data and cannot override harness rules.
+
+Budgets are set in `[budgets]`, `HARNESS_*` environment variables or CLI options.
+Precedence remains defaults → TOML → environment → CLI. `max_runtime_seconds` is
+an alias of `max_seconds`; `max_test_runs` aliases `max_test_executions`.
+Use `--help` for all limits. Model/tool/read/search/edit/check counts, wall/model/
+tool/check time, context size and recovery attempts are recorded. Exact input
+counts are used only when the adapter supplies an exact counter. Otherwise
+characters, UTF-8 bytes and conservative token reservations are explicitly
+labeled estimates; unavailable complete billing totals remain null in reports.
+
+Read/search caches reuse **previous actual results**, marked as cached, only
+while guarded filesystem metadata is unchanged. Edits/checks invalidate them.
+Duplicate successful checks may reuse evidence only for the same source snapshot;
+final verification never relies on model prose. Give each run an exclusive
+checkout: hostile concurrent host writers are not supported.
+
+Path traversal, symlinks, hardlinks, special files and credential-shaped paths
+are rejected by the original descriptor-relative I/O layer. Check processes run
+in private Linux namespaces with a restricted filesystem, clean environment,
+network isolation, process/output/time/file limits and descendant cleanup.
+The target is the only writable host-backed data tree; runtime directories are
+read-only. No API credential is inherited. Known environment credential values,
+common secret fields and private-key blocks are redacted before model input/logs.
+Redaction cannot identify every arbitrary or obfuscated secret.
+
+This is not an audited kernel-exploit sandbox and does not enforce aggregate
+cgroup CPU/process/memory quotas. Use a dedicated disposable host for hostile
+repositories. Linked/shallow Git worktrees, symlinked dependencies and files beyond
+configured limits can be blocked. See `docs/PHASE2_TOOLS.md` for the original
+runtime boundary, which remains in force.
+
+## Reports and testing
+
+Each run writes private, redacted state and events under `.runs/<run-id>/`.
+Agent execution additionally produces `report.json`, `summary.md`, and the
+existing `model_result.json`. Reports include the task/model, actual changed
+files, every recorded check outcome, targeted/broad results, checks not run or
+blocked, final snapshot verification, budgets, usage, runtime and limitations.
+Statuses: VERIFIED, FAILED, INCOMPLETE, BLOCKED, BUDGET_EXHAUSTED. The terminal
+summary shows earlier failures as well as later passing checks.
 
 ```bash
-make run ARGS='--config harness.checks.example.toml --workspace /absolute/path/to/target --task "Check the change" --tool run_checks'
+make test        # complete unit/integration/real sandbox fixture suite
+make demo-tools  # explicit scripted tool demonstration, no API needed
+make demo-model  # explicit mock decisions, actual edits and checks
+make clean       # remove environment/caches; retain run evidence and targets
 ```
 
-`{python}` expands to `/usr/bin/python3` inside the sandbox. Other executables must
-be absolute system-bin paths. Shell/privilege-wrapper executables are rejected.
-This is still trusted operator configuration: permitting an interpreter's `-c`
-option does not make the supplied program trustworthy. The isolation layer, not
-argument spelling alone, restricts the running program.
+MockModelAdapter is for deterministic tests and demonstrations, never selectable
+by the production factory. The suite includes ten clean coding tasks, adversarial
+agent scenarios, both provider classes against local HTTP protocol fixtures,
+security, bounded context/budget, failure recovery and evaluator-entry tests.
+A mock or loopback HTTP success is not a live DeepSeek/Qwen quality result.
 
-A check result contains actual `stdout`, `stderr`, `exit_code`, duration,
-`command_started`, `timed_out`, `output_limit_exceeded`, and an execution error
-when applicable. A failed, blocked, or timed-out check is never a pass. The direct
-CLI exits 1 for completed check requests with failing results, 2 for rejected or
-blocked requests, and 0 for successful tool requests. GNU Make wraps child failures
-in its own nonzero status.
-
-**`all_passed` means only that the selected commands actually started and returned
-zero without a timeout/output-limit/launcher failure.** A successful command that
-runs zero tests is not recognized as meaningful task verification in this phase.
-`verification_status` remains `NOT_ASSESSED`; no `VERIFIED` task result is produced.
-
-## What the six tools do
-
-| Tool | Behavior |
-|---|---|
-| `list_files` | Bounded recursive listing, optional glob, skipped-path explanations; no link following. |
-| `search_code` | Bounded literal text search with file names and one-based line numbers; optional case-insensitivity and glob. |
-| `read_file` | Exact UTF-8 text/line range, SHA-256 of actual original bytes, explicit output truncation. |
-| `apply_patch` | Validated exact replacements, new files and digest-guarded deletes; dry-run support and per-file atomic replacement. |
-| `run_checks` | Real named commands in a Linux namespace sandbox; bounded pipes, timeouts, process cleanup, clean environment. |
-| `get_changes` | Actual Git porcelain status, staged/unstaged diffs, and separate actual untracked-file diffs. |
-
-See `docs/PHASE2_TOOLS.md` for signatures, patch rules, limits, and detailed
-security boundaries. `docs/PHASE1_REPORT.md` and the pre-existing evidence files
-are historical Phase 1 records, not claims about the current version.
-
-## Isolation and deliberate limits
-
-File operations use directory descriptors and `O_NOFOLLOW`, reject absolute/parent
-paths, hardlinks, special files, credential paths, and Git metadata edits.
-
-Check execution adds a user/mount/PID/network/IPC/UTS namespace and a reduced
-filesystem. The sole writable **host-backed** mount is `/workspace`; `/tmp` is
-private, size-limited memory scratch. System `/usr`, `/bin`, `/sbin`, and library
-roots are explicitly readable, read-only runtime dependencies. Host home, the
-harness directory, host `/proc`, and arbitrary host data directories are not
-mounted. Credentials are not copied into the child environment. Existing usual
-credential paths and `.git` metadata are masked for checks. Git inspection mounts
-the target read-only and masks repository-local Git configuration.
-
-This is not a claim of complete hostile-code safety: read-only runtime trees are
-visible; kernel vulnerabilities, concurrent privileged host filesystem changes,
-and aggregate fork/disk/CPU denial of service are not fully addressed. Use an
-isolated evaluation machine/container with no secrets in its runtime tree for
-untrusted repositories. Timeouts, private PID namespaces, output limits, and
-per-process limits reduce risk but do not replace cgroup-wide quotas.
-
-For conservative safety, execution refuses repositories containing symlinks,
-hardlinks, sockets, devices, FIFOs or nested mounts. `get_changes` supports a
-standalone SHA-1 Git checkout, not linked worktrees, alternate object stores,
-shallow repositories, or submodule inspection. UTF-8 text editing only; no fuzzy
-patching, rename operation, arbitrary shell tool, or automatic dependency install.
-
-## Development demonstration
-
-`make demo-tools` needs no API key. It copies the intentionally broken fixture to
-a separate temporary Git repository and executes all six tools. Its real check
-sequence is baseline failure → incorrect patch failure → repaired-code success.
-It retains the target and writes `demo_report.json`; printed paths identify both.
-**The decisions are scripted in this development demonstration. The edits, Git
-commands, and test processes are real. No mock model exists in the production path.**
-
-## Model adapter use
-
-The offline model demonstration uses no API key:
-
-```bash
-make demo-model
-```
-
-It copies the **existing** average-function fixture into a separate temporary
-repository. A baseline command actually fails, then the mock requests
-`read_file → apply_patch → run_checks`. The existing tools do the work. Its report
-contains actual command results and Git changes, with `is_mock=true` and zero
-external model API calls. This tests integration, not model ability.
-
-For a real call, have the organizer's credential already in `AI_API_KEY`, then set
-`AI_PROVIDER`, `AI_MODEL_ID`, `AI_API_ENDPOINT`, `AI_REQUEST_FORMAT` and
-`AI_RESPONSE_FORMAT` to confirmed values. The endpoint is the complete POST URL;
-the adapter appends **nothing**. Only select `chat_completions`/`chat_json` or
-`chat_tools` when the endpoint supports that chosen format. An alternative
-`json_template`/`mapped_json` profile is configurable in trusted TOML.
-
-```bash
-# Configuration-only readiness. Does NOT claim the provider is reachable.
-make run ARGS='--non-interactive --model-health'
-
-# Explicit network probe; may incur provider usage, never executes tools.
-make run ARGS='--non-interactive --model-health --live-health'
-
-# One real model decision plus its validated tool action, not a complete loop.
-make run ARGS='--workspace /absolute/path/to/target --task "Inspect the issue" --model-step'
-```
-
-A model-step run writes `model-events.jsonl`, `model_result.json`, and the updated
-`run_state.json` in the existing run directory. Malformed responses become
-structured `MODEL_ERROR` outcomes, not uncaught tracebacks or fabricated success.
-Failed real checks return `CHECKS_FAILED`. None of these statuses is `VERIFIED`.
-A normal text response is `MESSAGE`, not proof that the task is solved.
-
-`model.provider`/`AI_PROVIDER` is the new provider setting; existing
-`model.family`/`AI_MODEL_FAMILY` remains a supported alias. Model settings can be
-provided through the existing defaults → TOML → environment → CLI precedence.
-`AI_TEMPERATURE`, `AI_MAX_TOKENS`, `AI_TIMEOUT_SECONDS` and `AI_MAX_RETRIES` are
-supported. Existing global budgets still cap per-call limits.
-
-See `docs/PHASE3_MODEL_ADAPTER.md` for the interface, exact formats, examples,
-health semantics, retry rules and limitations. `harness.model.example.toml` is an
-explicit opt-in example, **not organizer-supplied configuration**.
-
-## Reports and source map
-
-A CLI tool run writes startup `events.jsonl`, `tool-events.jsonl`,
-`run_state.json`, and `tool_result.json` under a private `.runs/<run-id>/`.
-Budgets and actual tool/check counts are recorded. Direct tool runs keep model usage at zero.
-Output redaction protects the environment-supplied credential where recognized,
-but is not a general secret scanner.
-
-```text
-src/ai_harness/
-  tools.py             Six-tool API, dispatcher, counters and event hooks
-  tool_types.py        Validated check/patch/limit/result types
-  repository_io.py     Descriptor-relative read/traversal guards
-  patching.py          Exact validation, staging, publication and rollback
-  execution.py         Real subprocess launch, bounded capture and cleanup
-  _sandbox.py          Private namespace setup and reduced filesystem
-  git_tools.py         Actual Git status/diff inspection
-  tool_session.py      CLI tools connected to Phase 1 startup/state/logging
-  model.py             Generic ModelAdapter protocol (controller dependency)
-  model_types.py       Normalized requests/responses, usage, controlled errors
-  model_providers.py   DeepSeek/Qwen adapters and production-only factory
-  model_protocols.py   Explicit chat or configured JSON template codecs
-  model_transport.py   Bounded actual HTTP requests, verified TLS, no redirects
-  mock_model.py        Explicit scripted test adapter, never factory-selected
-  model_tools.py       Schemas for the existing six tool signatures
-  controller.py        One model-independent request/action integration step
-  model_session.py     CLI composition, artifacts and health checks
-  cli.py, config.py    Existing interface extended with model settings
-  startup.py, ...     Preserved foundation components
-```
-
-`make clean` removes the development environment and caches, not target
-repositories, source, or recorded run evidence.
+Historical Phase 1–3 documents/evidence remain for continuity. The Python package
+version remains 0.3.0 for compatibility; it is not a phase-completion counter.
+Final execution evidence and any unavailable external validation are reported
+separately from implementation claims.

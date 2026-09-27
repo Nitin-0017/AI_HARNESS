@@ -158,8 +158,12 @@ class ModelResponse:
     finish_reason: str = 'stop'
     usage: TokenUsage = field(default_factory=TokenUsage)
     raw_metadata: dict[str, Any] = field(default_factory=dict)
+    reason: str = ''
+    expected_outcome: str = ''
 
     def __post_init__(self):
+        if any(not isinstance(v, str) or len(v) > 16000 for v in (self.reason, self.expected_outcome)):
+            raise invalid('Action reason and expected_outcome must be bounded strings')
         if not isinstance(self.message, str) or not isinstance(self.arguments, dict) or not isinstance(self.raw_metadata, dict):
             raise invalid('Response message, arguments or metadata has the wrong type')
         if not isinstance(self.finish_reason, str) or self.finish_reason not in FINISH_REASONS or not isinstance(self.usage, TokenUsage):

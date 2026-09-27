@@ -188,9 +188,10 @@ class ModelCliTests(FoundationTestCase):
                 'AI_API_ENDPOINT': server.endpoint, 'AI_REQUEST_FORMAT': 'chat_completions',
                 'AI_RESPONSE_FORMAT': 'chat_json', 'AI_MAX_RETRIES': '0', **extra}
 
-    def test_default_run_still_makes_no_model_call(self):
+    def test_explicit_startup_still_makes_no_model_call(self):
         server = ModelServer([]); self.addCleanup(server.close)
-        code, out, err = self.cli(self.args() + ['--json'], env=self.server_env(server))
+        # Evaluator default now executes when configured; --startup preserves Phase 3 validation-only behavior.
+        code, out, err = self.cli(self.args() + ['--startup', '--json'], env=self.server_env(server))
         self.assertEqual(code, 0, err)
         self.assertEqual(json.loads(out)['model_execution'], 'NOT_RUN')
         self.assertEqual(server.requests, [])

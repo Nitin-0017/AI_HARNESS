@@ -5,6 +5,10 @@ from dataclasses import replace
 import fnmatch
 from functools import wraps
 import os
+import time
+import json
+import copy
+from collections import OrderedDict
 import threading
 from typing import Any, Callable
 
@@ -29,8 +33,12 @@ def action(function: Callable) -> Callable:
                 if self.state.usage.tool_calls >= self.state.budgets.max_tool_calls:
                     raise BudgetExceeded('max_tool_calls exhausted')
                 self.state.usage.tool_calls += 1
+                counter = {'read_file': 'read_calls', 'search_code': 'search_calls', 'apply_patch': 'edit_calls'}.get(function.__name__)
+                if counter:
+                    setattr(self.state.usage, counter, getattr(self.state.usage, counter) + 1)
             if self.emit is not None:
                 self.emit('tool.begin', tool=function.__name__)
+            began = time.monotonic()
             try:
                 result = function(self, *args, **kwargs)
             except Exception:
@@ -39,6 +47,9 @@ def action(function: Callable) -> Callable:
                 if self.emit is not None:
                     self.emit('tool.failed', tool=function.__name__, level='ERROR')
                 raise
+            finally:
+                if self.state is not None:
+                    self.state.usage.tool_seconds += time.monotonic() - began
             if self.emit is not None:
                 self.emit('tool.complete', tool=function.__name__)
             return self.redactor.clean(result)
@@ -50,9 +61,12 @@ class RepositoryTools:
                  checks: tuple[CheckSpec, ...] = (), state: RunState | None = None,
                  redactor: Redactor | None = None, emit: Callable | None = None):
         self.limits = limits or ToolLimits()
-        self.redactor = redactor or Redactor(os.environ.get('AI_API_KEY'))
+        self.redactor = redactor or Redactor.from_environment(os.environ)
         self.state, self.emit = state, emit
         self._lock = threading.RLock()
+        self.cache_enabled = True
+        self._cache = OrderedDict()
+        self._cache_bytes = 0
         if any(not isinstance(spec, CheckSpec) for spec in checks):
             raise ToolError('Checks must be validated CheckSpec objects')
         self.checks = {spec.name: spec for spec in checks}
@@ -176,13 +190,31 @@ class RepositoryTools:
                     raise BudgetExceeded('max_test_executions exhausted')
                 remaining = self.state.budgets.max_seconds - self.state.elapsed_seconds
                 spec = replace(spec, timeout_seconds=min(spec.timeout_seconds or self.limits.command_timeout_seconds, remaining))
-            result = self.runner.run(spec)
+            began = time.monotonic()
+            try:
+                result = self.runner.run(spec)
+            except (ToolError, OSError) as exc:
+                if self.state is not None:
+                    self.state.check_history.append(self.redactor.clean({'name':name,'argv':list(spec.argv),
+                        'command_started':False,'exit_code':None,'stdout':'','stderr':'','error':str(exc),
+                        'timed_out':False,'output_limit_exceeded':False,'duration_seconds':time.monotonic()-began,
+                        'execution_id':f'{self.state.run_id}:{len(self.state.check_history)+1}',
+                        'iteration':self.state.usage.iterations,'source_snapshot':self.state.check_snapshot,
+                        'scope':spec.scope,'required':spec.required,'passed':False}))
+                raise
             if self.state is not None:
                 if result.command_started:
                     self.state.usage.test_executions += 1
                 if not result.passed:
                     self.state.usage.failures += 1
-            results.append(result.to_dict())
+            recorded = {**result.to_dict(), 'scope': spec.scope, 'required': spec.required}
+            if self.state is not None:
+                recorded['execution_id'] = f'{self.state.run_id}:{len(self.state.check_history) + 1}'
+                recorded['iteration'] = self.state.usage.iterations
+                recorded['source_snapshot'] = self.state.check_snapshot
+                self.state.usage.test_seconds += result.duration_seconds
+                self.state.check_history.append(self.redactor.clean(recorded))
+            results.append(recorded)
         return {'results': results, 'all_passed': bool(results) and all(r['passed'] for r in results),
                 'verification_status': 'NOT_ASSESSED',
                 'note': 'Exit codes are execution evidence, not an autonomous task-verification verdict.'}
@@ -191,6 +223,26 @@ class RepositoryTools:
     def get_changes(self) -> dict:
         return inspect_changes(self.io, self.runner, self.redactor)
 
+    def _cache_key(self, name, arguments):
+        if name == 'read_file':
+            with self.io.parent(arguments.get('path', '')) as (parent, leaf):
+                info = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+                self.io.validate_regular(info)
+                signature = self.io.signature(info)
+        elif name == 'search_code':
+            files, skipped = self.io.walk(arguments.get('path', '.'))
+            signature = []
+            for path in files:
+                if self.state: self.state.check_time_budget()
+                with self.io.parent(path) as (parent, leaf):
+                    info = os.stat(leaf, dir_fd=parent, follow_symlinks=False)
+                    self.io.validate_regular(info)
+                    signature.append((path, self.io.signature(info)))
+            signature.append(('skipped', skipped))
+        else:
+            return None
+        return (name, json.dumps(arguments, sort_keys=True), digest(json.dumps(signature).encode()))
+
     def call(self, name: str, arguments: dict[str, Any] | None = None) -> dict:
         if not isinstance(name, str) or name not in {'list_files', 'search_code', 'read_file', 'apply_patch', 'run_checks', 'get_changes'}:
             raise ToolError('Unknown repository tool')
@@ -198,7 +250,35 @@ class RepositoryTools:
             arguments = {}
         if not isinstance(arguments, dict):
             raise ToolError('Tool arguments must be a JSON object')
+        failures_before = self.state.usage.failures if self.state else 0
         try:
-            return getattr(self, name)(**arguments)
-        except TypeError as exc:
+            with self._lock:
+                self.io.ensure_root()
+                if self.state:
+                    self.state.check_time_budget()
+                    if self.state.usage.tool_calls >= self.state.budgets.max_tool_calls:
+                        raise BudgetExceeded('max_tool_calls exhausted')
+                if name in {'apply_patch', 'run_checks'}:
+                    self._cache.clear(); self._cache_bytes = 0
+                key = self._cache_key(name, arguments) if self.cache_enabled else None
+                if key is not None and key in self._cache:
+                    value, size = self._cache.pop(key)
+                    self._cache[key] = (value, size)
+                    if self.state: self.state.usage.cache_hits += 1
+                    if self.emit: self.emit('tool.cache_hit', tool=name)
+                    return {**copy.deepcopy(value), 'cache_hit': True, 'evidence_source': 'previous actual tool result; file metadata unchanged'}
+                result = getattr(self, name)(**arguments)
+                if key is not None:
+                    size = len(json.dumps(result).encode())
+                    if size <= self.limits.max_output_bytes:
+                        self._cache[key] = (copy.deepcopy(result), size); self._cache_bytes += size
+                        while len(self._cache) > 16 or self._cache_bytes > self.limits.max_output_bytes * 4:
+                            _, (_, removed) = self._cache.popitem(last=False); self._cache_bytes -= removed
+                return result
+        except (ToolError, TypeError, OSError, ValueError) as exc:
+            if self.state and self.state.usage.failures == failures_before:
+                self.state.usage.failures += 1
+                if self.emit: self.emit('tool.failed', tool=name, level='ERROR')
+            if isinstance(exc, ToolError):
+                raise
             raise ToolError('Invalid or unknown tool argument') from exc

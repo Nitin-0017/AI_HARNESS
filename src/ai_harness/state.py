@@ -36,6 +36,16 @@ class AgentStatus(str, Enum):
 
 @dataclass
 class ResourceUsage:
+    inspection_reads: int = 0
+    inspection_bytes: int = 0
+    search_calls: int = 0
+    read_calls: int = 0
+    edit_calls: int = 0
+    cache_hits: int = 0
+    avoided_test_runs: int = 0
+    model_seconds: float = 0.0
+    tool_seconds: float = 0.0
+    test_seconds: float = 0.0
     model_calls: int = 0
     tool_calls: int = 0
     test_executions: int = 0
@@ -58,6 +68,8 @@ class ResourceUsage:
     context_selections: int = 0
     estimated_tokens: int = 0
     unknown_model_usage_calls: int = 0
+    unknown_input_usage_calls: int = 0
+    unknown_output_usage_calls: int = 0
 
 
 @dataclass
@@ -77,6 +89,13 @@ class RunState:
     model_execution: str = "NOT_RUN"
     agent_status: AgentStatus | None = None
     task_result: str | None = None
+    modified_files: list[str] = field(default_factory=list)
+    recovery: dict[str, Any] = field(default_factory=dict, repr=False)
+    failure_fingerprints: dict[str, int] = field(default_factory=dict)
+    repository_intelligence: dict[str, Any] = field(default_factory=dict, repr=False)
+    verification: dict[str, Any] = field(default_factory=dict, repr=False)
+    check_history: list[dict[str, Any]] = field(default_factory=list, repr=False)
+    check_snapshot: str | None = None
     context: dict[str, Any] = field(default_factory=dict, repr=False)
     _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
     _started_clock: float = field(init=False, repr=False)
@@ -115,6 +134,12 @@ class RunState:
             "task": ({"text": self.task.text, "source": self.task.source,
                       "size_bytes": self.task.size_bytes} if self.task else None),
             "context": self.context,
+            "repository_intelligence": self.repository_intelligence,
+            "recovery": self.recovery,
+            "modified_files": self.modified_files,
+            "failure_fingerprints": self.failure_fingerprints,
+            "verification": self.verification,
+            "check_history": self.check_history,
             "model": self.model,
             "model_execution": self.model_execution,
             "current_action": self.current_action,

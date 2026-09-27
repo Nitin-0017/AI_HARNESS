@@ -17,7 +17,8 @@ from .workspace import Workspace
 
 IGNORED_DIRS = frozenset({'.git', '.venv', 'venv', '__pycache__', '.pytest_cache',
                           'node_modules', '.mypy_cache', '.ruff_cache'})
-PROTECTED = frozenset({'.git', '.ssh', '.aws', '.gnupg'})
+PROTECTED = frozenset({'.git', '.ssh', '.aws', '.gnupg', '.netrc', '.npmrc', '.pypirc',
+                       'credentials.json', 'secrets.json', 'id_rsa', 'id_ed25519'})
 
 
 def path_parts(path: str, *, root_ok: bool = False) -> tuple[str, ...]:
@@ -34,7 +35,7 @@ def path_parts(path: str, *, root_ok: bool = False) -> tuple[str, ...]:
 
 
 def protected(parts: tuple[str, ...]) -> bool:
-    return any(p in PROTECTED or (p.startswith('.env') and p != '.env.example')
+    return any(p.lower() in PROTECTED or (p.startswith('.env') and p != '.env.example')
                or p.endswith(('.pem', '.key', '.p12', '.pfx')) for p in parts)
 
 

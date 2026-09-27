@@ -1,0 +1,111 @@
+{
+  "baseline_commit": "0f3a398a10efc5385c7785de1a5134ea2c38da4c",
+  "implementation_phases": [
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18
+  ],
+  "final_optimization_implemented": true,
+  "local_validation_status": "PASS",
+  "live_provider_evaluation_status": "BLOCKED_MISSING_CONFIGURATION",
+  "runtime": {
+    "python": "3.13.5",
+    "platform": "linux"
+  },
+  "final_complete_suite": {
+    "tests": 501,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "source": "make test in clean local clone",
+    "duration_seconds": 22.728
+  },
+  "fixture_matrix": {
+    "tasks": 10,
+    "expected_outcomes_passed": 10,
+    "scope": "Scripted MockModelAdapter decisions with real file/check/Git execution"
+  },
+  "adversarial_matrix": {
+    "scenarios": "A-Q plus missing dependency and oversized output",
+    "cases": 19,
+    "expected_outcomes_passed": 19,
+    "model_timeout_scope": "Real loopback HTTP request, not provider service"
+  },
+  "evaluator": {
+    "clone": "Clean local Git clone; remote GitHub cloning unavailable due DNS",
+    "source_modified_after_clone": false,
+    "setup": true,
+    "interactive_make_run": true,
+    "task_supplied_after_launch": true,
+    "make_test": true,
+    "make_clean": true,
+    "real_protocol_adapter": "DeepSeek class with explicitly configured local HTTP fixture",
+    "live_provider": false,
+    "repair_verified": true,
+    "missing_credential_rejected": true,
+    "budget_stop_verified": true
+  },
+  "security_scan": {
+    "files_scanned": 122,
+    "python_files_parsed": 75,
+    "findings": [],
+    "scope": "All tracked and intended untracked files; credential-shaped literals, file hygiene, Python AST; not an exhaustive secret detector or security audit."
+  },
+  "optimization": {
+    "selected_evidence_unchanged": true,
+    "task_term_extractions_before": 950,
+    "task_term_extractions_after": 10,
+    "total_term_extractions_before": 1890,
+    "total_term_extractions_after": 950,
+    "wall_time_before": 0.059466258999918864,
+    "wall_time_after": 0.05555505799998173,
+    "note": "Operation-count reduction is deterministic; wall timing is a single local microbenchmark, not a production latency guarantee."
+  },
+  "real_tool_optimization": {
+    "same_final_snapshot": true,
+    "model_calls": [
+      8,
+      8
+    ],
+    "tool_calls": [
+      10,
+      7
+    ],
+    "read_calls": [
+      2,
+      1
+    ],
+    "search_calls": [
+      2,
+      1
+    ],
+    "test_runs": [
+      2,
+      1
+    ],
+    "scope": "Controlled identical fixture; caching disabled then enabled, actual execution"
+  },
+  "known_limitations": [
+    "Live DeepSeek/Qwen coding performance not evaluated: API key, exact model ID, endpoint and profiles were not supplied.",
+    "The organizer runtime and precise issue transport remain unconfirmed.",
+    "Linux namespace sandbox requirements and documented conservative Git/filesystem limits remain; no unrestricted fallback.",
+    "Checks establish available execution evidence, not full task correctness or official evaluation success."
+  ],
+  "existing_test_change": "The previous configured default startup-only test now explicitly passes --startup, because a fully configured make run must enter the agent. Assertions and test coverage retained.",
+  "fixes_during_validation": [
+    "Fixed a newline in new token-accounting code before Phase 13 validation.",
+    "Preserved failure accounting when cache path validation rejects an action.",
+    "Updated startup help and diagnostic endpoint-presence handling.",
+    "Required nested unittest directories and inspected framework types beyond the first 24 files."
+  ]
+}

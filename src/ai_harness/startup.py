@@ -51,7 +51,7 @@ def initialize(
     prompt_output: TextIO, project_root: Path, cwd: Path,
 ) -> StartupResult:
     environment = load_environment(env)
-    redactor = Redactor(environment.credential.reveal())
+    redactor = Redactor.from_environment(env)
     config = load_config(project_root, config_path=options.config_path, env=env,
                          overrides=options.overrides, cwd=cwd)
     task = load_task(text=options.task, file=options.task_file, from_stdin=options.task_stdin,

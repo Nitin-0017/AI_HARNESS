@@ -30,7 +30,7 @@ class _HttpModelAdapter:
             self._credential = load_environment(os.environ if env is None else env).credential
         except EnvironmentValidationError:
             self._credential_error = ModelError('CREDENTIAL_MISSING', 'A valid AI_API_KEY must be supplied through the environment')
-        self._redactor = Redactor(self._credential.reveal() if self._credential else None)
+        self._redactor = Redactor.from_environment(os.environ if env is None else env)
 
     def _validate(self) -> None:
         try:
@@ -65,6 +65,8 @@ class _HttpModelAdapter:
         payload = self._redactor.clean(encode_request(self.config, request))
         payload = json_copy(payload)
         body = json.dumps(payload, ensure_ascii=False, allow_nan=False).encode('utf-8')
+        if len(body) > self.budgets.max_context_bytes:
+            raise ModelError('REQUEST_LIMIT', 'Encoded model request exceeds max_context_bytes')
         credential = self._credential.reveal()
         headers = {'Content-Type': 'application/json', 'Accept': 'application/json',
                    'Connection': 'close', self.config.auth_header: ((self.config.auth_scheme + ' ') if self.config.auth_scheme else '') + credential}

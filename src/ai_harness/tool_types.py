@@ -58,6 +58,9 @@ class CheckSpec:
     argv: tuple[str, ...]
     cwd: str = '.'
     timeout_seconds: float | None = None
+    scope: str = 'broad'
+    paths: tuple[str, ...] = ()
+    required: bool = True
 
     def __post_init__(self) -> None:
         if not isinstance(self.name, str) or not self.name or len(self.name) > 100 or not all(
@@ -78,6 +81,11 @@ class CheckSpec:
         if (PurePosixPath(self.cwd).is_absolute() or '..' in self.cwd.split('/') or '\\' in self.cwd
                 or ':' in self.cwd or any(ord(c) < 32 for c in self.cwd)):
             raise ConfigurationError('Check cwd must not traverse outside the target workspace')
+        if self.scope not in {'targeted', 'broad'} or type(self.required) is not bool:
+            raise ConfigurationError('Invalid check scope/required flag')
+        if not isinstance(self.paths, (tuple, list)) or len(self.paths)>100 or any(not isinstance(p,str) or PurePosixPath(p).is_absolute() or '..' in p.split('/') or '\\' in p for p in self.paths):
+            raise ConfigurationError('Check paths must be bounded relative paths')
+        object.__setattr__(self, 'paths', tuple(self.paths))
         if self.timeout_seconds is not None:
             positive(self.timeout_seconds, 'check.timeout_seconds')
 

@@ -107,9 +107,10 @@ class ContextManager:
         return {w for w in re.findall(r'[^\W_]+', text.casefold()) if len(w) > 2} - {
             'the', 'and', 'for', 'with', 'from', 'this', 'that', 'return', 'task', 'file'}
 
-    def _score(self, item: ContextItem) -> float:
-        task = self.state.task.text if self.state.task else ''
-        terms = self._terms(task + ' ' + self.plan + ' ' + self.focus)
+    def _score(self, item: ContextItem, terms: set[str] | None = None) -> float:
+        if terms is None:
+            task = self.state.task.text if self.state.task else ''
+            terms = self._terms(task + ' ' + self.plan + ' ' + self.focus)
         relevance = len(terms & self._terms(item.path + ' ' + item.text[:2000]))
         return (PRIORITY[item.section] + min(30, relevance * 6)
                 + (15 if item.path and item.path == self.focus else 0)
@@ -122,9 +123,13 @@ class ContextManager:
     def _trim(self) -> None:
         budget = self.state.budgets
         self._memory_bytes = len(encode(self._retained()).encode('utf-8'))
+        terms = None
         while self.items and (len(self.items) > budget.max_context_items or
                               self._memory_bytes > budget.max_context_memory_bytes):
-            victim = min(self.items, key=lambda k: (self._score(self.items[k]), self.items[k].sequence))
+            if terms is None:
+                task = self.state.task.text if self.state.task else ''
+                terms = self._terms(task + ' ' + self.plan + ' ' + self.focus)
+            victim = min(self.items, key=lambda k: (self._score(self.items[k], terms), self.items[k].sequence))
             del self.items[victim]
             self.evicted += 1
             self._memory_bytes = len(encode(self._retained()).encode('utf-8'))
@@ -193,8 +198,9 @@ class ContextManager:
         result = self.redactor.clean(result)
         arguments = self.redactor.clean(arguments)
         if action == 'list_files':
+            task_terms = self._terms(self.state.task.text if self.state.task else '')
             paths = sorted(result.get('files', []), key=lambda p: (
-                -len(self._terms(p) & self._terms(self.state.task.text if self.state.task else '')), p))
+                -len(self._terms(p) & task_terms), p))
             for path in paths[:self.state.budgets.max_context_items]:
                 self._put('REPOSITORY', path, path, path)
             self._put('REPOSITORY', 'structure-summary', encode({
@@ -277,6 +283,8 @@ class ContextManager:
         if error:
             error_text = encode({'status': value.get('status'), 'action': action, 'error': error})
             self._put('FAILURES', hashlib.sha256(error_text.encode()).hexdigest(), error_text)
+        if value.get('recovery'):
+            self._put('FAILURES', 'recovery-context', encode(value['recovery']))
         if value.get('instruction'):
             self._put('FAILURES', 'recovery', str(value['instruction']))
         self._trim()
@@ -329,7 +337,7 @@ class ContextManager:
                 return True
             return (item.path == self.focus or ('CURRENT CHANGES', 'patch:' + item.path) in self.items
                     or bool(task_terms & self._terms(item.path + ' ' + item.text[:2000])))
-        ranked = sorted((v for v in self.items.values() if relevant(v)), key=self._score, reverse=True)
+        ranked = sorted((v for v in self.items.values() if relevant(v)), key=lambda item: self._score(item, task_terms), reverse=True)
         # First offer each evidence category some space. An old error history
         # must not displace all relevant code or the newest verification result.
         leaders = []
@@ -349,7 +357,7 @@ class ContextManager:
             if content_key in seen:
                 continue
             # Known file contents do not earn space merely by being in memory.
-            if item.section in {'RELEVANT CODE', 'TESTS'} and self._score(item) < 42:
+            if item.section in {'RELEVANT CODE', 'TESTS'} and self._score(item, task_terms) < 42:
                 continue
             text = clip(item.text, per_item)
             sections[item.section].append(text)

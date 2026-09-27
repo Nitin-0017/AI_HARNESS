@@ -62,6 +62,28 @@ class BudgetConfig:
     max_task_bytes: int = 64000
 
 
+    @property
+    def max_runtime_seconds(self):
+        return self.max_seconds
+
+    @property
+    def max_test_runs(self):
+        return self.max_test_executions
+
+
+BUDGET_ALIASES = {'max_runtime_seconds': 'max_seconds', 'max_test_runs': 'max_test_executions'}
+
+
+def budget_aliases(values):
+    values = dict(values)
+    for alias, canonical in BUDGET_ALIASES.items():
+        if alias in values:
+            if canonical in values and values[canonical] != values[alias]:
+                raise ConfigurationError('Conflicting budget alias and canonical value')
+            values[canonical] = values.pop(alias)
+    return values
+
+
 @dataclass(frozen=True)
 class AppConfig:
     workspace: Path | None
@@ -253,7 +275,7 @@ def load_config(
     workspace_table = _table(data, "workspace", {"path"})
     logging_table = _table(data, "logging", {"output_dir", "level"})
     model_data = _table(data, "model", {f.name for f in fields(ModelConfig)})
-    budget_data = _table(data, "budgets", {f.name for f in fields(BudgetConfig)})
+    budget_data = budget_aliases(_table(data, "budgets", {f.name for f in fields(BudgetConfig)} | set(BUDGET_ALIASES)))
     tool_data = _table(data, "tools", {f.name for f in fields(ToolLimits)} - {"command_timeout_seconds"})
     check_data = data.get("checks", [])
     if not isinstance(check_data, list) or len(check_data) > 32:
@@ -286,6 +308,17 @@ def load_config(
                 model_data[setting] = numeric_model.get(setting, str)(env[name])
             except (ValueError, TypeError, OverflowError) as exc:
                 raise ConfigurationError(f"{name} has an invalid value") from exc
+    for alias, canonical in BUDGET_ALIASES.items():
+        name = 'HARNESS_' + alias.upper()
+        if name in env:
+            try:
+                value = (float if canonical in FLOAT_BUDGETS else int)(env[name])
+                other = 'HARNESS_' + canonical.upper()
+                if other in env and float(env[other]) != value:
+                    raise ValueError
+                budget_data[canonical] = value
+            except (ValueError, TypeError, OverflowError) as exc:
+                raise ConfigurationError('Invalid or conflicting budget environment alias') from exc
     for item in fields(BudgetConfig):
         name = "HARNESS_" + item.name.upper()
         if name in env:
@@ -305,6 +338,8 @@ def load_config(
         level = overrides["log_level"]
     for section, target in (("model", model_data), ("budgets", budget_data)):
         values = overrides.get(section, {})
+        if section == "budgets" and isinstance(values, Mapping):
+            values = budget_aliases(values)
         allowed = {f.name for f in fields(ModelConfig if section == "model" else BudgetConfig)}
         if not isinstance(values, Mapping) or set(values) - allowed:
             raise ConfigurationError(f"Invalid {section} override")
