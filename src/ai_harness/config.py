@@ -52,6 +52,10 @@ class BudgetConfig:
     max_test_executions: int = 20
     max_total_tokens: int = 100000
     max_context_chars: int = 64000
+    max_context_bytes: int = 256000
+    max_context_items: int = 128
+    max_context_item_chars: int = 8000
+    max_context_memory_bytes: int = 256000
     max_retries: int = 2
     command_timeout_seconds: float = 60.0
     model_timeout_seconds: float = 60.0

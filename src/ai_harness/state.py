@@ -46,6 +46,16 @@ class ResourceUsage:
     output_tokens: int = 0
     total_tokens: int = 0
     context_chars: int = 0
+    context_bytes: int = 0
+    peak_context_chars: int = 0
+    peak_context_bytes: int = 0
+    context_tokens: int | None = None
+    context_token_source: str = "unavailable"
+    context_estimated_tokens: int = 0
+    context_estimation_method: str = "not_measured"
+    context_memory_bytes: int = 0
+    context_items: int = 0
+    context_selections: int = 0
     estimated_tokens: int = 0
     unknown_model_usage_calls: int = 0
 
@@ -67,6 +77,7 @@ class RunState:
     model_execution: str = "NOT_RUN"
     agent_status: AgentStatus | None = None
     task_result: str | None = None
+    context: dict[str, Any] = field(default_factory=dict, repr=False)
     _clock: Callable[[], float] = field(default=time.monotonic, repr=False)
     _started_clock: float = field(init=False, repr=False)
 
@@ -103,6 +114,7 @@ class RunState:
             "workspace": self.workspace,
             "task": ({"text": self.task.text, "source": self.task.source,
                       "size_bytes": self.task.size_bytes} if self.task else None),
+            "context": self.context,
             "model": self.model,
             "model_execution": self.model_execution,
             "current_action": self.current_action,
